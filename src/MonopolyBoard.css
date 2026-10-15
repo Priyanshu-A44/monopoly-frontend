@@ -1,4 +1,6 @@
-/* Base Resets & Font */
+/* ==========================================================================
+   1. Base Resets & Global Styles
+   ========================================================================== */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -11,7 +13,9 @@ body {
   color: #ffffff;
 }
 
-/* Pre-Game Lobby & Waiting Room */
+/* ==========================================================================
+   2. Pre-Game Lobby & Waiting Room
+   ========================================================================== */
 .lobby-container {
   display: flex;
   flex-direction: column;
@@ -85,7 +89,9 @@ body {
   margin: 6px 0;
 }
 
-/* Main Game Layout */
+/* ==========================================================================
+   3. Main Game Layout & 11x11 Grid Board
+   ========================================================================== */
 .game-wrapper {
   display: flex;
   gap: 24px;
@@ -111,7 +117,9 @@ body {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
-/* Center Board Section */
+/* ==========================================================================
+   4. Center Control Panel & Action Buttons
+   ========================================================================== */
 .board-center {
   grid-column: 2 / 11;
   grid-row: 2 / 11;
@@ -174,7 +182,29 @@ body {
   transform: translateY(-2px);
 }
 
-/* Board Tiles & Country Flags */
+.auction-controls {
+  background: #1c1a36;
+  border: 1px solid #363260;
+  padding: 12px 16px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.auction-controls button {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  background-color: #6366f1;
+  color: #ffffff;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   5. Tile Visuals, Flags & Special Tile Icons
+   ========================================================================== */
 .tile {
   background-color: #1a1833;
   border: 1px solid #2a274d;
@@ -216,6 +246,13 @@ body {
   margin-bottom: 3px;
 }
 
+.tile-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+  margin-bottom: 2px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+
 .tile-name {
   font-weight: 600;
   color: #e2e8f0;
@@ -231,7 +268,9 @@ body {
   font-weight: 500;
 }
 
-/* Character Tokens */
+/* ==========================================================================
+   6. Googly-Eyed Animated Character Tokens
+   ========================================================================== */
 .player-character-token {
   width: 26px;
   height: 26px;
@@ -241,6 +280,7 @@ body {
   display: flex;
   justify-content: center;
   align-items: flex-start;
+  cursor: pointer;
 }
 
 .character-eyes {
@@ -268,7 +308,9 @@ body {
   margin-top: 1px;
 }
 
-/* Sidebar & Log */
+/* ==========================================================================
+   7. Sidebar, Player List & Game Log
+   ========================================================================== */
 .sidebar {
   width: 320px;
   display: flex;
