@@ -624,16 +624,16 @@ body {
    ========================================================================== */
 
 /* Bottom Row (0 to 10): Right to Left */
-.tile-0  { grid-column: 11; grid-row: 11; }
-.tile-1  { grid-column: 10; grid-row: 11; }
-.tile-2  { grid-column: 9;  grid-row: 11; }
-.tile-3  { grid-column: 8;  grid-row: 11; }
-.tile-4  { grid-column: 7;  grid-row: 11; }
-.tile-5  { grid-column: 6;  grid-row: 11; }
-.tile-6  { grid-column: 5;  grid-row: 11; }
-.tile-7  { grid-column: 4;  grid-row: 11; }
-.tile-8  { grid-column: 3;  grid-row: 11; }
-.tile-9  { grid-column: 2;  grid-row: 11; }
+.tile-0   { grid-column: 11; grid-row: 11; }
+.tile-1   { grid-column: 10; grid-row: 11; }
+.tile-2   { grid-column: 9;  grid-row: 11; }
+.tile-3   { grid-column: 8;  grid-row: 11; }
+.tile-4   { grid-column: 7;  grid-row: 11; }
+.tile-5   { grid-column: 6;  grid-row: 11; }
+.tile-6   { grid-column: 5;  grid-row: 11; }
+.tile-7   { grid-column: 4;  grid-row: 11; }
+.tile-8   { grid-column: 3;  grid-row: 11; }
+.tile-9   { grid-column: 2;  grid-row: 11; }
 .tile-10 { grid-column: 1;  grid-row: 11; }
 
 /* Left Column (11 to 19): Bottom to Top */
