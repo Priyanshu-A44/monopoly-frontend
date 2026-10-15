@@ -5,51 +5,49 @@ import "./MonopolyBoard.css";
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
 let socket;
 
-// Complete 40-Tile Board Fallback with "Vacation" at Tile 20
 const DEFAULT_BOARD = [
   { id: 0, name: "START", type: "CORNER" },
-  { id: 1, name: "Salvador", price: 60, colorGroup: "#8b5cf6", countryCode: "BR", type: "PROPERTY" },
+  { id: 1, name: "Salvador", price: 60, colorGroup: "#8b5cf6", countryCode: "BR", type: "PROPERTY", houseCost: 50 },
   { id: 2, name: "Community Chest", type: "CHEST" },
-  { id: 3, name: "Rio", price: 60, colorGroup: "#8b5cf6", countryCode: "BR", type: "PROPERTY" },
+  { id: 3, name: "Rio", price: 60, colorGroup: "#8b5cf6", countryCode: "BR", type: "PROPERTY", houseCost: 50 },
   { id: 4, name: "Income Tax", price: 200, type: "TAX" },
   { id: 5, name: "TLV Airport", price: 200, type: "RAILROAD" },
-  { id: 6, name: "Tel Aviv", price: 100, colorGroup: "#3b82f6", countryCode: "IL", type: "PROPERTY" },
+  { id: 6, name: "Tel Aviv", price: 100, colorGroup: "#3b82f6", countryCode: "IL", type: "PROPERTY", houseCost: 50 },
   { id: 7, name: "Chance", type: "CHANCE" },
-  { id: 8, name: "Haifa", price: 100, colorGroup: "#3b82f6", countryCode: "IL", type: "PROPERTY" },
-  { id: 9, name: "Jerusalem", price: 120, colorGroup: "#3b82f6", countryCode: "IL", type: "PROPERTY" },
+  { id: 8, name: "Haifa", price: 100, colorGroup: "#3b82f6", countryCode: "IL", type: "PROPERTY", houseCost: 50 },
+  { id: 9, name: "Jerusalem", price: 120, colorGroup: "#3b82f6", countryCode: "IL", type: "PROPERTY", houseCost: 50 },
   { id: 10, name: "In Prison / Visiting", type: "CORNER" },
-  { id: 11, name: "Venice", price: 140, colorGroup: "#ec4899", countryCode: "IT", type: "PROPERTY" },
+  { id: 11, name: "Venice", price: 140, colorGroup: "#ec4899", countryCode: "IT", type: "PROPERTY", houseCost: 100 },
   { id: 12, name: "Electric Company", price: 150, type: "UTILITY" },
-  { id: 13, name: "Milan", price: 140, colorGroup: "#ec4899", countryCode: "IT", type: "PROPERTY" },
-  { id: 14, name: "Rome", price: 160, colorGroup: "#ec4899", countryCode: "IT", type: "PROPERTY" },
+  { id: 13, name: "Milan", price: 140, colorGroup: "#ec4899", countryCode: "IT", type: "PROPERTY", houseCost: 100 },
+  { id: 14, name: "Rome", price: 160, colorGroup: "#ec4899", countryCode: "IT", type: "PROPERTY", houseCost: 100 },
   { id: 15, name: "MUC Airport", price: 200, type: "RAILROAD" },
-  { id: 16, name: "Frankfurt", price: 180, colorGroup: "#f59e0b", countryCode: "DE", type: "PROPERTY" },
+  { id: 16, name: "Frankfurt", price: 180, colorGroup: "#f59e0b", countryCode: "DE", type: "PROPERTY", houseCost: 100 },
   { id: 17, name: "Community Chest", type: "CHEST" },
-  { id: 18, name: "Munich", price: 180, colorGroup: "#f59e0b", countryCode: "DE", type: "PROPERTY" },
-  { id: 19, name: "Berlin", price: 200, colorGroup: "#f59e0b", countryCode: "DE", type: "PROPERTY" },
+  { id: 18, name: "Munich", price: 180, colorGroup: "#f59e0b", countryCode: "DE", type: "PROPERTY", houseCost: 100 },
+  { id: 19, name: "Berlin", price: 200, colorGroup: "#f59e0b", countryCode: "DE", type: "PROPERTY", houseCost: 100 },
   { id: 20, name: "Vacation", type: "CORNER" },
-  { id: 21, name: "Paris", price: 220, colorGroup: "#10b981", countryCode: "FR", type: "PROPERTY" },
+  { id: 21, name: "Paris", price: 220, colorGroup: "#10b981", countryCode: "FR", type: "PROPERTY", houseCost: 150 },
   { id: 22, name: "Chance", type: "CHANCE" },
-  { id: 23, name: "Nice", price: 220, colorGroup: "#10b981", countryCode: "FR", type: "PROPERTY" },
-  { id: 24, name: "Lyon", price: 240, colorGroup: "#10b981", countryCode: "FR", type: "PROPERTY" },
+  { id: 23, name: "Nice", price: 220, colorGroup: "#10b981", countryCode: "FR", type: "PROPERTY", houseCost: 150 },
+  { id: 24, name: "Lyon", price: 240, colorGroup: "#10b981", countryCode: "FR", type: "PROPERTY", houseCost: 150 },
   { id: 25, name: "CDG Airport", price: 200, type: "RAILROAD" },
-  { id: 26, name: "Liverpool", price: 260, colorGroup: "#e11d48", countryCode: "GB", type: "PROPERTY" },
-  { id: 27, name: "Manchester", price: 260, colorGroup: "#e11d48", countryCode: "GB", type: "PROPERTY" },
+  { id: 26, name: "Liverpool", price: 260, colorGroup: "#e11d48", countryCode: "GB", type: "PROPERTY", houseCost: 150 },
+  { id: 27, name: "Manchester", price: 260, colorGroup: "#e11d48", countryCode: "GB", type: "PROPERTY", houseCost: 150 },
   { id: 28, name: "Water Works", price: 150, type: "UTILITY" },
-  { id: 29, name: "London", price: 280, colorGroup: "#e11d48", countryCode: "GB", type: "PROPERTY" },
+  { id: 29, name: "London", price: 280, colorGroup: "#e11d48", countryCode: "GB", type: "PROPERTY", houseCost: 150 },
   { id: 30, name: "Go To Prison", type: "CORNER" },
-  { id: 31, name: "San Francisco", price: 300, colorGroup: "#ef4444", countryCode: "US", type: "PROPERTY" },
-  { id: 32, name: "Seattle", price: 300, colorGroup: "#ef4444", countryCode: "US", type: "PROPERTY" },
+  { id: 31, name: "San Francisco", price: 300, colorGroup: "#ef4444", countryCode: "US", type: "PROPERTY", houseCost: 200 },
+  { id: 32, name: "Seattle", price: 300, colorGroup: "#ef4444", countryCode: "US", type: "PROPERTY", houseCost: 200 },
   { id: 33, name: "Community Chest", type: "CHEST" },
-  { id: 34, name: "New York", price: 320, colorGroup: "#ef4444", countryCode: "US", type: "PROPERTY" },
+  { id: 34, name: "New York", price: 320, colorGroup: "#ef4444", countryCode: "US", type: "PROPERTY", houseCost: 200 },
   { id: 35, name: "JFK Airport", price: 200, type: "RAILROAD" },
   { id: 36, name: "Chance", type: "CHANCE" },
-  { id: 37, name: "Kyoto", price: 350, colorGroup: "#6366f1", countryCode: "JP", type: "PROPERTY" },
+  { id: 37, name: "Kyoto", price: 350, colorGroup: "#6366f1", countryCode: "JP", type: "PROPERTY", houseCost: 200 },
   { id: 38, name: "Luxury Tax", price: 100, type: "TAX" },
-  { id: 39, name: "Tokyo", price: 400, colorGroup: "#6366f1", countryCode: "JP", type: "PROPERTY" }
+  { id: 39, name: "Tokyo", price: 400, colorGroup: "#6366f1", countryCode: "JP", type: "PROPERTY", houseCost: 200 }
 ];
 
-// Returns custom visual icons for non-country property tiles
 const getTileIcon = (tile) => {
   if (!tile) return null;
   const name = tile.name?.toLowerCase() || "";
@@ -69,7 +67,6 @@ const getTileIcon = (tile) => {
   return null;
 };
 
-// Symmetrical 40-Tile Grid Position Mapping (11x11 Grid)
 const getTileGridStyle = (index) => {
   if (index >= 0 && index <= 10) {
     return { gridColumn: 11 - index, gridRow: 11 };
@@ -91,6 +88,7 @@ export default function MonopolyBoard() {
   const [gameState, setGameState] = useState(null);
   const [displayPositions, setDisplayPositions] = useState({});
   const [bidAmount, setBidAmount] = useState("");
+  const [showBuildMenu, setShowBuildMenu] = useState(false);
 
   useEffect(() => {
     socket = io(BACKEND_URL);
@@ -113,7 +111,6 @@ export default function MonopolyBoard() {
     };
   }, []);
 
-  // Continuous Step-by-Step Walking Animation Engine
   useEffect(() => {
     if (!gameState?.players) return;
 
@@ -161,8 +158,13 @@ export default function MonopolyBoard() {
 
   const handleStartGame = () => socket.emit("START_GAME", { roomCode });
   const handleRollDice = () => socket.emit("ACTION_ROLL", { roomCode });
+  const handlePayBail = () => socket.emit("ACTION_PAY_BAIL", { roomCode });
   const handleBuyProperty = () => socket.emit("ACTION_BUY", { roomCode });
   const handleDeclineProperty = () => socket.emit("ACTION_DECLINE", { roomCode });
+
+  const handleBuildHouse = (tileId) => {
+    socket.emit("ACTION_BUILD_HOUSE", { roomCode, tileId });
+  };
 
   const handlePlaceBid = (e) => {
     e.preventDefault();
@@ -220,6 +222,7 @@ export default function MonopolyBoard() {
   const board = gameState?.board || DEFAULT_BOARD;
   const players = gameState?.players || [];
   const logs = gameState?.log || [];
+  const properties = gameState?.properties || {};
   const turnPhase = gameState?.turnPhase;
 
   const currentTurnPlayer = players[gameState?.turnIndex] || players[0] || {};
@@ -227,6 +230,9 @@ export default function MonopolyBoard() {
 
   const renderTile = (tile, tileIndex) => {
     const icon = getTileIcon(tile);
+    const propData = properties[tile.id];
+    const owner = players.find((p) => p.id === propData?.ownerId);
+    const houses = propData?.houses || 0;
 
     return (
       <div
@@ -242,7 +248,6 @@ export default function MonopolyBoard() {
         )}
 
         <div className="tile-content">
-          {/* Country Flag or Special Tile Icon */}
           {tile?.countryCode ? (
             <img
               src={`https://flagcdn.com/w40/${tile.countryCode.toLowerCase()}.png`}
@@ -255,10 +260,35 @@ export default function MonopolyBoard() {
 
           <div className="tile-name">{tile?.name}</div>
           {tile?.price && <div className="tile-price">${tile.price}</div>}
+
+          {/* Owner Badge */}
+          {owner && (
+            <div
+              className="owner-badge"
+              style={{ backgroundColor: owner.color || "#6366f1" }}
+              title={`Owned by ${owner.name}`}
+            />
+          )}
+
+          {/* Houses & Hotels Display */}
+          {houses > 0 && (
+            <div className="houses-container">
+              {houses === 5 ? (
+                <span className="hotel-symbol">🏨</span>
+              ) : (
+                Array.from({ length: houses }).map((_, i) => (
+                  <span key={i} className="house-symbol">🏠</span>
+                ))
+              )}
+            </div>
+          )}
         </div>
       </div>
     );
   };
+
+  // Find properties owned by the player that can be upgraded
+  const myProperties = board.filter((t) => properties[t.id]?.ownerId === socket?.id);
 
   return (
     <div className="game-wrapper">
@@ -277,21 +307,56 @@ export default function MonopolyBoard() {
           </div>
 
           {isMyTurn && (
-            <div className="action-buttons">
+            <div className="action-buttons" style={{ flexDirection: "column", alignItems: "center" }}>
               {turnPhase === "AWAITING_ROLL" && (
-                <button onClick={handleRollDice}>Roll Dice</button>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button onClick={handleRollDice}>
+                    {currentTurnPlayer.inJail ? "Roll for Doubles 🎲" : "Roll Dice"}
+                  </button>
+                  {currentTurnPlayer.inJail && (
+                    <button onClick={handlePayBail} style={{ backgroundColor: "#f59e0b" }}>
+                      Pay $50 Bail 🔓
+                    </button>
+                  )}
+                </div>
               )}
+
               {turnPhase === "ACTION_REQUIRED" && (
-                <>
+                <div style={{ display: "flex", gap: "8px" }}>
                   <button onClick={handleBuyProperty}>Buy Property</button>
                   <button onClick={handleDeclineProperty} style={{ backgroundColor: "#ef4444" }}>
                     Auction Property
                   </button>
-                </>
+                </div>
               )}
-              {turnPhase === "AWAITING_END_TURN" && (
-                <button onClick={handleEndTurn}>End Turn</button>
+
+              {(turnPhase === "AWAITING_END_TURN" || turnPhase === "AWAITING_ROLL") && (
+                <div style={{ display: "flex", gap: "8px", marginTop: "6px" }}>
+                  {myProperties.length > 0 && (
+                    <button onClick={() => setShowBuildMenu(!showBuildMenu)} style={{ backgroundColor: "#8b5cf6" }}>
+                      {showBuildMenu ? "Close Build Menu" : "Build Houses 🏗️"}
+                    </button>
+                  )}
+                  {turnPhase === "AWAITING_END_TURN" && (
+                    <button onClick={handleEndTurn}>End Turn</button>
+                  )}
+                </div>
               )}
+            </div>
+          )}
+
+          {/* Build Houses Overlay Menu */}
+          {showBuildMenu && isMyTurn && (
+            <div className="build-menu">
+              <h4>Your Owned Properties:</h4>
+              <div className="build-list">
+                {myProperties.map((t) => (
+                  <div key={t.id} className="build-item">
+                    <span>{t.name} (Cost: ${t.houseCost || 100})</span>
+                    <button onClick={() => handleBuildHouse(t.id)}>+ House/Hotel</button>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -366,7 +431,7 @@ export default function MonopolyBoard() {
           {players.map((p) => (
             <div key={p.id} className="player-card">
               <span className="player-dot" style={{ backgroundColor: p.color || "#6366f1" }} />
-              <strong>{p.name}</strong> : ${p.money}
+              <strong>{p.name}</strong> : ${p.money} {p.inJail ? "🔒" : ""}
             </div>
           ))}
         </div>
