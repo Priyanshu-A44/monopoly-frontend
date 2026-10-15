@@ -1,181 +1,219 @@
 import React, { useState, useEffect } from "react";
-import { io } from "socket.io-client";
-import { BOARD_TILES } from "./boardData";
+import io from "socket.io-client";
 import "./MonopolyBoard.css";
 
+// Connect to cloud backend URL or fallback to localhost
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
-const socket = io(BACKEND_URL);
-
-// Map 0-39 indices directly to CSS 11x11 Grid coordinates around perimeter
-const getGridPosition = (index) => {
-  if (index >= 0 && index <= 10) return { gridColumn: 11 - index, gridRow: 1 }; // Top row (right to left)
-  if (index > 10 && index <= 20) return { gridColumn: 1, gridRow: index - 10 + 1 }; // Right column (top to bottom)
-  if (index > 20 && index <= 30) return { gridColumn: index - 20 + 1, gridRow: 11 }; // Bottom row (left to right)
-  if (index > 30 && index < 40) return { gridColumn: 11, gridRow: 11 - (index - 30) }; // Left column (bottom to top)
-};
+let socket;
 
 export default function MonopolyBoard() {
   const [playerName, setPlayerName] = useState("");
   const [roomCode, setRoomCode] = useState("qb4kw");
   const [joined, setJoined] = useState(false);
-  const [roomInfo, setRoomInfo] = useState({ players: [], started: false });
   const [gameState, setGameState] = useState(null);
-  const [bidInput, setBidInput] = useState("");
 
   useEffect(() => {
-    socket.on("ROOM_UPDATE", (data) => setRoomInfo(data));
-    socket.on("GAME_STATE_UPDATE", (state) => setGameState(state));
-    socket.on("ERROR", (msg) => alert(msg));
-    return () => socket.off();
+    socket = io(BACKEND_URL);
+
+    socket.on("gameState", (updatedState) => {
+      setGameState(updatedState);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
   }, []);
 
-  const handleJoin = () => {
-    if (!playerName) return alert("Please enter your name");
-    socket.emit("JOIN_GAME", { roomCode, playerName });
-    setJoined(true);
+  const handleJoin = (e) => {
+    e.preventDefault();
+    if (playerName.trim() && roomCode.trim()) {
+      socket.emit("joinRoom", { name: playerName, room: roomCode });
+      setJoined(true);
+    }
   };
 
-  const handleStart = () => socket.emit("START_GAME", { roomCode });
-  const handleRoll = () => socket.emit("ACTION_ROLL", { roomCode });
-  const handleBuy = () => socket.emit("ACTION_BUY", { roomCode });
-  const handleDecline = () => socket.emit("ACTION_DECLINE", { roomCode });
-  const handleEndTurn = () => socket.emit("ACTION_END_TURN", { roomCode });
-  const handleBuildHouse = (tileId) => socket.emit("ACTION_BUILD_HOUSE", { roomCode, tileId });
-
-  const handleBid = () => {
-    if (!bidInput || isNaN(bidInput)) return alert("Enter valid bid amount");
-    socket.emit("ACTION_BID", { roomCode, amount: Number(bidInput) });
-    setBidInput("");
+  const handleStartGame = () => {
+    socket.emit("startGame", { room: roomCode });
   };
-  const handlePass = () => socket.emit("ACTION_PASS_BID", { roomCode });
 
+  const handleRollDice = () => {
+    socket.emit("rollDice", { room: roomCode });
+  };
+
+  const handleBuyProperty = () => {
+    socket.emit("buyProperty", { room: roomCode });
+  };
+
+  const handleEndTurn = () => {
+    socket.emit("endTurn", { room: roomCode });
+  };
+
+  // 1. Pre-Game Lobby / Join Screen
   if (!joined) {
     return (
-      <div className="login-screen">
+      <div className="lobby-container">
         <h2>Join Monopoly Game</h2>
-        <input placeholder="Your Name" value={playerName} onChange={e => setPlayerName(e.target.value)} />
-        <input placeholder="Room Code" value={roomCode} onChange={e => setRoomCode(e.target.value)} />
-        <button onClick={handleJoin}>Join Lobby</button>
+        <form onSubmit={handleJoin}>
+          <input
+            type="text"
+            placeholder="Your Name"
+            value={playerName}
+            onChange={(e) => setPlayerName(e.target.value)}
+            required
+          />
+          <input
+            type="text"
+            placeholder="Room Code"
+            value={roomCode}
+            onChange={(e) => setRoomCode(e.target.value)}
+            required
+          />
+          <button type="submit">Join Lobby</button>
+        </form>
       </div>
     );
   }
 
-  if (!gameState) {
+  // 2. Waiting Room Screen before Host starts
+  if (gameState && !gameState.started) {
     return (
-      <div className="lobby-screen">
-        <h2>Room: {roomCode}</h2>
-        <h3>Connected Players ({roomInfo.players.length}):</h3>
-        <ul>{roomInfo.players.map((p, i) => <li key={i}>{p.name}</li>)}</ul>
-        {roomInfo.players.length >= 2 ? (
-          <button onClick={handleStart}>Start Game</button>
-        ) : (
-          <p>Waiting for at least 2 players to join...</p>
+      <div className="lobby-container">
+        <h2>Room Code: {roomCode}</h2>
+        <h3>Players Joined:</h3>
+        <ul>
+          {gameState.players.map((p) => (
+            <li key={p.id} style={{ color: p.color, fontWeight: "bold" }}>
+              {p.name}
+            </li>
+          ))}
+        </ul>
+        {gameState.hostId === socket.id && (
+          <button onClick={handleStartGame}>Start Game</button>
         )}
       </div>
     );
   }
 
-  const currentPlayer = gameState.players[gameState.turnIndex];
-  const isMyTurn = currentPlayer.id === socket.id;
+  const board = gameState?.board || [];
+  const players = gameState?.players || [];
+  const currentTurnPlayer = players[gameState?.currentTurnIndex] || {};
+  const isMyTurn = currentTurnPlayer.id === socket?.id;
 
-  const auctionTile = gameState.auction ? BOARD_TILES[gameState.auction.tileId] : null;
-  const activeBidderId = gameState.auction?.activeBidders[gameState.auction.turnIndex];
-  const isMyBidTurn = activeBidderId === socket.id;
+  // Helper to render tile content (Flags, Name, Price, and Character Tokens)
+  const renderTile = (tileIndex) => {
+    const tile = board[tileIndex];
+    if (!tile) return <div key={tileIndex} className="tile empty" />;
 
-  return (
-    <div className="game-container">
-      <div className="monopoly-board">
-        {BOARD_TILES.map((tile) => {
-          const prop = gameState.properties[tile.id];
-          const houses = prop?.houses || 0;
+    const playersOnTile = players.filter((p) => p.position === tileIndex);
 
-          return (
-            <div key={tile.id} className="tile" style={getGridPosition(tile.id)}>
-              {tile.group && <div className={`color-bar group-${tile.group}`} />}
-              <div className="tile-name">
-                {tile.flag && <span className="flag-icon">{tile.flag} </span>}
-                {tile.name}
-              </div>
-              {tile.price && <div className="tile-price">${tile.price}</div>}
+    return (
+      <div key={tileIndex} className={`tile ${tile.type || ""}`}>
+        {/* Top Color Header for Properties */}
+        {tile.colorGroup && (
+          <div
+            className="tile-color-bar"
+            style={{ backgroundColor: tile.colorGroup }}
+          />
+        )}
 
-              {houses > 0 && (
-                <div className="building-container">
-                  {houses === 5 ? "🏨" : "🏠".repeat(houses)}
-                </div>
-              )}
-
-              <div className="token-container">
-                {gameState.players
-                  .filter((p) => p.position === tile.id)
-                  .map((p) => (
-                    <span key={p.id} className="player-token" style={{ backgroundColor: p.color }} title={p.name} />
-                  ))}
-              </div>
-            </div>
-          );
-        })}
-
-        <div className="board-center">
-          <h2>Monopoly</h2>
-          <div className="dice-display">
-            🎲 {gameState.currentDice[0]} : {gameState.currentDice[1]} 🎲
-          </div>
-
-          {gameState.turnPhase !== "AUCTION" && (
-            <>
-              <p>Current Turn: <strong>{currentPlayer.name}</strong></p>
-              {isMyTurn && (
-                <div className="action-buttons">
-                  {gameState.turnPhase === "AWAITING_ROLL" && <button onClick={handleRoll}>Roll Dice</button>}
-                  {gameState.turnPhase === "ACTION_REQUIRED" && (
-                    <>
-                      <button onClick={handleBuy}>Buy Property</button>
-                      <button onClick={handleDecline}>Decline (Auction)</button>
-                    </>
-                  )}
-                  <button onClick={handleEndTurn}>End Turn</button>
-                </div>
-              )}
-            </>
+        <div className="tile-content">
+          {/* Country Flag Image */}
+          {tile.countryCode && (
+            <img
+              src={`https://flagcdn.com/w40/${tile.countryCode.toLowerCase()}.png`}
+              alt={tile.countryCode}
+              className="tile-flag"
+            />
           )}
 
-          {gameState.turnPhase === "AUCTION" && auctionTile && (
-            <div className="auction-overlay">
-              <h3>🔨 AUCTION: {auctionTile.name}</h3>
-              <p>Current High Bid: <strong>${gameState.auction.currentBid}</strong></p>
-              <p>Bidding Turn: <strong>{gameState.players.find(p => p.id === activeBidderId)?.name}</strong></p>
+          {/* Tile Name & Price */}
+          <div className="tile-name">{tile.name}</div>
+          {tile.price && <div className="tile-price">${tile.price}</div>}
 
-              {isMyBidTurn ? (
-                <div className="bid-controls">
-                  <input
-                    type="number"
-                    placeholder={`> $${gameState.auction.currentBid}`}
-                    value={bidInput}
-                    onChange={(e) => setBidInput(e.target.value)}
-                  />
-                  <button onClick={handleBid}>Bid</button>
-                  <button onClick={handlePass}>Pass</button>
+          {/* Googly-Eyed Player Character Tokens */}
+          <div className="player-tokens-container">
+            {playersOnTile.map((player) => (
+              <div
+                key={player.id}
+                className="player-character-token"
+                style={{ backgroundColor: player.color }}
+                title={player.name}
+              >
+                <div className="character-eyes">
+                  <div className="eye">
+                    <div className="pupil" />
+                  </div>
+                  <div className="eye">
+                    <div className="pupil" />
+                  </div>
                 </div>
-              ) : (
-                <p>Waiting for current bidder...</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // 3. Main Live Game Board
+  return (
+    <div className="game-wrapper">
+      <div className="board-container">
+        {/* Center Board Information */}
+        <div className="board-center">
+          <h1>Monopoly</h1>
+
+          {gameState?.lastRoll && (
+            <div className="dice-display">
+              🎲 {gameState.lastRoll[0]} : {gameState.lastRoll[1]} 🎲
+            </div>
+          )}
+
+          <div className="turn-indicator">
+            Current Turn: <strong>{currentTurnPlayer.name || "N/A"}</strong>
+          </div>
+
+          {/* In-Game Action Controls */}
+          {isMyTurn && (
+            <div className="action-buttons">
+              {!gameState.hasRolled && (
+                <button onClick={handleRollDice}>Roll Dice</button>
+              )}
+              {gameState.canBuy && (
+                <button onClick={handleBuyProperty}>Buy Property</button>
+              )}
+              {gameState.hasRolled && (
+                <button onClick={handleEndTurn}>End Turn</button>
               )}
             </div>
           )}
         </div>
+
+        {/* Board Tiles */}
+        {board.map((_, index) => renderTile(index))}
       </div>
 
+      {/* Right Sidebar (Players & Live Game Log) */}
       <div className="sidebar">
-        <h3>Players</h3>
-        {gameState.players.map((p) => (
-          <div key={p.id} className="player-card">
-            <span className="color-dot" style={{ backgroundColor: p.color }} />
-            <strong>{p.name}</strong>: ${p.money}
-          </div>
-        ))}
+        <div className="player-list">
+          <h3>Players</h3>
+          {players.map((p) => (
+            <div key={p.id} className="player-card">
+              <span className="player-dot" style={{ backgroundColor: p.color }} />
+              <strong>{p.name}</strong> : ${p.money}
+            </div>
+          ))}
+        </div>
 
-        <h3>Game Log</h3>
-        <div className="log-box">
-          {gameState.log.map((entry, idx) => <p key={idx}>{entry}</p>)}
+        <div className="game-log">
+          <h3>Game Log</h3>
+          <div className="log-messages">
+            {(gameState?.logs || []).slice().reverse().map((log, i) => (
+              <div key={i} className="log-entry">
+                {log}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
