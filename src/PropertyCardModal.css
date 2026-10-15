@@ -1,0 +1,98 @@
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.property-card-modal {
+  background: linear-gradient(145deg, #23223f, #18162b);
+  border: 1px solid #3c3863;
+  border-radius: 12px;
+  padding: 20px;
+  width: 320px;
+  color: #ffffff;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  position: relative;
+  font-family: sans-serif;
+}
+
+.close-btn {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.property-title {
+  text-align: center;
+  margin-top: 0;
+  font-size: 22px;
+}
+
+.rent-table {
+  margin: 15px 0;
+  border-bottom: 1px solid #3c3863;
+  padding-bottom: 10px;
+}
+
+.table-header, .rent-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 14px;
+}
+
+.table-header {
+  color: #8380b0;
+  border-bottom: 1px dashed #3c3863;
+  margin-bottom: 6px;
+}
+
+.property-costs {
+  display: flex;
+  justify-content: space-around;
+  text-align: center;
+  margin-top: 10px;
+}
+
+.cost-item {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+}
+
+.property-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.action-btn {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.build-btn {
+  background: #28a745;
+  color: white;
+}
+
+.mortgage-btn {
+  background: #dc3545;
+  color: white;
+}
