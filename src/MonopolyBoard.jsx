@@ -10,13 +10,27 @@ export default function MonopolyBoard() {
   const [playerName, setPlayerName] = useState("");
   const [roomCode, setRoomCode] = useState("qb4kw");
   const [joined, setJoined] = useState(false);
+  const [lobbyPlayers, setLobbyPlayers] = useState([]);
   const [gameState, setGameState] = useState(null);
+  const [bidAmount, setBidAmount] = useState("");
 
   useEffect(() => {
     socket = io(BACKEND_URL);
 
-    socket.on("gameState", (updatedState) => {
+    // 1. Lobby Update Event
+    socket.on("ROOM_UPDATE", ({ players, started }) => {
+      setLobbyPlayers(players);
+    });
+
+    // 2. Monopoly Engine Game State Event
+    socket.on("GAME_STATE_UPDATE", (updatedState) => {
       setGameState(updatedState);
+    });
+
+    // 3. Error Event Handling
+    socket.on("ERROR", (errMsg) => {
+      console.error("[Engine Error]:", errMsg);
+      alert(errMsg);
     });
 
     return () => {
@@ -24,31 +38,48 @@ export default function MonopolyBoard() {
     };
   }, []);
 
+  // Action Dispatchers matching server.js
   const handleJoin = (e) => {
     e.preventDefault();
     if (playerName.trim() && roomCode.trim()) {
-      socket.emit("joinRoom", { name: playerName, room: roomCode });
+      socket.emit("JOIN_GAME", { roomCode, playerName });
       setJoined(true);
     }
   };
 
   const handleStartGame = () => {
-    socket.emit("startGame", { room: roomCode });
+    socket.emit("START_GAME", { roomCode });
   };
 
   const handleRollDice = () => {
-    socket.emit("rollDice", { room: roomCode });
+    socket.emit("ACTION_ROLL", { roomCode });
   };
 
   const handleBuyProperty = () => {
-    socket.emit("buyProperty", { room: roomCode });
+    socket.emit("ACTION_BUY", { roomCode });
+  };
+
+  const handleDeclineProperty = () => {
+    socket.emit("ACTION_DECLINE", { roomCode });
+  };
+
+  const handlePlaceBid = (e) => {
+    e.preventDefault();
+    if (bidAmount) {
+      socket.emit("ACTION_BID", { roomCode, amount: bidAmount });
+      setBidAmount("");
+    }
+  };
+
+  const handlePassBid = () => {
+    socket.emit("ACTION_PASS_BID", { roomCode });
   };
 
   const handleEndTurn = () => {
-    socket.emit("endTurn", { room: roomCode });
+    socket.emit("ACTION_END_TURN", { roomCode });
   };
 
-  // 1. Pre-Game Lobby / Join Screen
+  // 1. Pre-Game Join Screen
   if (!joined) {
     return (
       <div className="lobby-container">
@@ -74,33 +105,25 @@ export default function MonopolyBoard() {
     );
   }
 
-  // 2. Loading State while waiting for Backend Game Data (Prevents Blank Screen)
-  if (joined && !gameState) {
-    return (
-      <div className="lobby-container">
-        <h2>Connecting to Server...</h2>
-        <p style={{ color: "#a5b4fc", marginTop: "12px", textAlign: "center" }}>
-          Waking up backend server. Please wait a few seconds...
-        </p>
-      </div>
-    );
-  }
-
-  // 3. Waiting Room Screen before Host starts
-  if (gameState && !gameState.started) {
+  // 2. Waiting Room / Pre-Start Lobby
+  if (!gameState) {
     return (
       <div className="lobby-container">
         <h2>Room Code: {roomCode}</h2>
-        <h3>Players Joined:</h3>
+        <h3>Players Joined ({lobbyPlayers.length}):</h3>
         <ul>
-          {gameState.players.map((p) => (
-            <li key={p.id} style={{ color: p.color, fontWeight: "bold" }}>
+          {lobbyPlayers.map((p, idx) => (
+            <li key={p.id || idx} style={{ color: p.color || "#a5b4fc", fontWeight: "bold" }}>
               {p.name}
             </li>
           ))}
         </ul>
-        {gameState.hostId === socket.id && (
+        {lobbyPlayers.length >= 1 ? (
           <button onClick={handleStartGame}>Start Game</button>
+        ) : (
+          <p style={{ color: "#a5b4fc", marginTop: "12px" }}>
+            Waiting for connection...
+          </p>
         )}
       </div>
     );
@@ -108,10 +131,10 @@ export default function MonopolyBoard() {
 
   const board = gameState?.board || [];
   const players = gameState?.players || [];
-  const currentTurnPlayer = players[gameState?.currentTurnIndex] || {};
+  const currentTurnPlayer = players.find((p) => p.id === gameState?.currentTurnPlayerId) || players[gameState?.currentTurnIndex] || {};
   const isMyTurn = currentTurnPlayer.id === socket?.id;
 
-  // Helper to render individual tiles with flags and googly-eyed tokens
+  // Helper to render individual tile with flags and googly-eyed tokens
   const renderTile = (tileIndex) => {
     const tile = board[tileIndex];
     if (!tile) return <div key={tileIndex} className="tile empty" />;
@@ -120,7 +143,6 @@ export default function MonopolyBoard() {
 
     return (
       <div key={tileIndex} className={`tile ${tile.type || ""}`}>
-        {/* Color Bar for Property Groups */}
         {tile.colorGroup && (
           <div
             className="tile-color-bar"
@@ -129,7 +151,6 @@ export default function MonopolyBoard() {
         )}
 
         <div className="tile-content">
-          {/* Country Flag Image */}
           {tile.countryCode && (
             <img
               src={`https://flagcdn.com/w40/${tile.countryCode.toLowerCase()}.png`}
@@ -138,17 +159,16 @@ export default function MonopolyBoard() {
             />
           )}
 
-          {/* Tile Title & Price */}
           <div className="tile-name">{tile.name}</div>
           {tile.price && <div className="tile-price">${tile.price}</div>}
 
-          {/* Googly-Eyed Character Player Tokens */}
+          {/* Googly-Eyed Character Tokens */}
           <div className="player-tokens-container">
             {playersOnTile.map((player) => (
               <div
                 key={player.id}
                 className="player-character-token"
-                style={{ backgroundColor: player.color }}
+                style={{ backgroundColor: player.color || "#6366f1" }}
                 title={player.name}
               >
                 <div className="character-eyes">
@@ -167,11 +187,11 @@ export default function MonopolyBoard() {
     );
   };
 
-  // 4. Main Live Game Board
+  // 3. Main Live Game Board
   return (
     <div className="game-wrapper">
       <div className="board-container">
-        {/* Center Board Information */}
+        {/* Center Board Information & Actions */}
         <div className="board-center">
           <h1>Monopoly</h1>
 
@@ -192,11 +212,36 @@ export default function MonopolyBoard() {
                 <button onClick={handleRollDice}>Roll Dice</button>
               )}
               {gameState.canBuy && (
-                <button onClick={handleBuyProperty}>Buy Property</button>
+                <>
+                  <button onClick={handleBuyProperty}>Buy Property</button>
+                  <button onClick={handleDeclineProperty} style={{ backgroundColor: "#ef4444" }}>
+                    Auction Property
+                  </button>
+                </>
               )}
-              {gameState.hasRolled && (
+              {gameState.hasRolled && !gameState.canBuy && (
                 <button onClick={handleEndTurn}>End Turn</button>
               )}
+            </div>
+          )}
+
+          {/* Auction UI Controls */}
+          {gameState?.inAuction && (
+            <div className="auction-controls" style={{ marginTop: "12px" }}>
+              <p>Auctioning Property! Current Bid: ${gameState.currentBid || 0}</p>
+              <form onSubmit={handlePlaceBid} style={{ display: "flex", gap: "8px", marginTop: "6px" }}>
+                <input
+                  type="number"
+                  placeholder="Bid Amount"
+                  value={bidAmount}
+                  onChange={(e) => setBidAmount(e.target.value)}
+                  style={{ width: "100px", padding: "4px" }}
+                />
+                <button type="submit">Place Bid</button>
+                <button type="button" onClick={handlePassBid} style={{ backgroundColor: "#6b7280" }}>
+                  Pass
+                </button>
+              </form>
             </div>
           )}
         </div>
@@ -211,7 +256,7 @@ export default function MonopolyBoard() {
           <h3>Players</h3>
           {players.map((p) => (
             <div key={p.id} className="player-card">
-              <span className="player-dot" style={{ backgroundColor: p.color }} />
+              <span className="player-dot" style={{ backgroundColor: p.color || "#6366f1" }} />
               <strong>{p.name}</strong> : ${p.money}
             </div>
           ))}
