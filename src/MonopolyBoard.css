@@ -1,141 +1,291 @@
-body {
-  background-color: #0f0c1b;
-  color: #fff;
-  font-family: Arial, sans-serif;
+/* Base Resets & Font */
+* {
+  box-sizing: border-box;
   margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
-.login-screen, .lobby-screen {
+body {
+  background-color: #0b0b16;
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   1. Pre-Game Lobby & Waiting Room
+   ========================================================================== */
+.lobby-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100vh;
-}
-
-.login-screen input, .login-screen button, .lobby-screen button {
-  margin: 8px;
-  padding: 10px 16px;
-  border-radius: 4px;
-  border: none;
-}
-
-.game-container {
-  display: flex;
-  gap: 20px;
-  padding: 20px;
-  justify-content: center;
-}
-
-.monopoly-board {
-  display: grid;
-  grid-template-columns: 2fr repeat(9, 1fr) 2fr;
-  grid-template-rows: 2fr repeat(9, 1fr) 2fr;
-  width: 780px;
-  height: 780px;
-  background-color: #1a162b;
-  border: 3px solid #0f0c1b;
-}
-
-.tile {
-  border: 1px solid #2d2845;
-  background-color: #231e3d;
+  min-height: 100vh;
+  background-color: #0d0c1d;
   color: #ffffff;
+  padding: 20px;
+}
+
+.lobby-container h2 {
+  margin-bottom: 20px;
+  font-size: 2rem;
+  letter-spacing: 1px;
+}
+
+.lobby-container h3 {
+  margin-top: 10px;
+  margin-bottom: 10px;
+  color: #a5b4fc;
+}
+
+.lobby-container form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  width: 320px;
+}
+
+.lobby-container input {
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid #333252;
+  background: #1a192e;
+  color: #ffffff;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.lobby-container input:focus {
+  border-color: #6366f1;
+}
+
+.lobby-container button {
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  background: #4f46e5;
+  color: #ffffff;
+  font-weight: bold;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.lobby-container button:hover {
+  background: #4338ca;
+  transform: translateY(-1px);
+}
+
+.lobby-container ul {
+  list-style: none;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.lobby-container li {
+  font-size: 1.2rem;
+  margin: 6px 0;
+}
+
+/* ==========================================================================
+   2. Main Game Layout
+   ========================================================================== */
+.game-wrapper {
+  display: flex;
+  gap: 24px;
+  padding: 24px;
+  max-width: 1350px;
+  margin: 0 auto;
+  min-height: 100vh;
+  align-items: flex-start;
+}
+
+.board-container {
+  display: grid;
+  grid-template-columns: repeat(11, 1fr);
+  grid-template-rows: repeat(11, 1fr);
+  width: 750px;
+  height: 750px;
+  background-color: #141326;
+  border: 3px solid #252342;
+  border-radius: 12px;
+  position: relative;
+  gap: 2px;
+  padding: 2px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* ==========================================================================
+   3. Center Board Section
+   ========================================================================== */
+.board-center {
+  grid-column: 2 / 11;
+  grid-row: 2 / 11;
+  background-color: #0f0e20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  z-index: 5;
+}
+
+.board-center h1 {
+  font-size: 2.6rem;
+  margin-bottom: 15px;
+  letter-spacing: 2px;
+  color: #ffffff;
+  text-shadow: 0 2px 10px rgba(99, 102, 241, 0.3);
+}
+
+.dice-display {
+  font-size: 1.8rem;
+  font-weight: bold;
+  margin-bottom: 15px;
+  background: #1d1b38;
+  padding: 8px 24px;
+  border-radius: 20px;
+  border: 1px solid #363260;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.turn-indicator {
+  font-size: 1.15rem;
+  margin-bottom: 20px;
+  color: #a5b4fc;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.action-buttons button {
+  padding: 10px 20px;
+  border-radius: 6px;
+  border: none;
+  background-color: #10b981;
+  color: #ffffff;
+  font-weight: bold;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: transform 0.1s, background-color 0.2s;
+  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
+}
+
+.action-buttons button:hover {
+  background-color: #059669;
+  transform: translateY(-2px);
+}
+
+/* ==========================================================================
+   4. Tiles & Country Flags
+   ========================================================================== */
+.tile {
+  background-color: #1a1833;
+  border: 1px solid #2a274d;
   position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 10px;
+  overflow: hidden;
+  font-size: 0.7rem;
   text-align: center;
+  border-radius: 2px;
+}
+
+.tile.empty {
+  background: transparent;
+  border: none;
+}
+
+.tile-color-bar {
+  height: 14px;
+  width: 100%;
+}
+
+.tile-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 4px 2px;
+  height: 100%;
+  position: relative;
+}
+
+.tile-flag {
+  width: 22px;
+  height: 14px;
+  object-fit: cover;
+  border-radius: 2px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  margin-bottom: 3px;
 }
 
 .tile-name {
   font-weight: 600;
-  margin-top: 4px;
+  color: #e2e8f0;
+  font-size: 0.65rem;
+  line-height: 1.1;
+  margin-bottom: 2px;
+  word-break: break-word;
 }
 
 .tile-price {
-  background: rgba(255, 255, 255, 0.15);
-  padding: 1px 4px;
-  border-radius: 3px;
-  font-size: 9px;
-  margin-bottom: 3px;
+  color: #94a3b8;
+  font-size: 0.6rem;
+  font-weight: 500;
 }
 
-.color-bar {
-  width: 100%;
-  height: 12px;
-}
-
-.group-Brazil { background-color: #2e7d32; }
-.group-Israel { background-color: #1565c0; }
-.group-Italy { background-color: #d81b60; }
-.group-Germany { background-color: #8e24aa; }
-.group-China { background-color: #e53935; }
-.group-France { background-color: #1e88e5; }
-.group-UK { background-color: #3949ab; }
-.group-USA { background-color: #5e35b1; }
-
-.board-center {
-  grid-column: 2 / 11;
-  grid-row: 2 / 11;
+/* ==========================================================================
+   5. Googly-Eyed Character Tokens
+   ========================================================================== */
+.player-tokens-container {
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  gap: 4px;
   justify-content: center;
-  background-color: #151124;
+  align-items: center;
+  position: absolute;
+  bottom: 3px;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  flex-wrap: wrap;
 }
 
-.token-container {
+.player-character-token {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.7), inset 0 -3px 4px rgba(0, 0, 0, 0.3);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  position: relative;
+  transition: transform 0.2s ease-in-out;
+}
+
+.player-character-token:hover {
+  transform: scale(1.35);
+  z-index: 30;
+}
+
+.character-eyes {
   display: flex;
   gap: 2px;
-  position: absolute;
-  bottom: 2px;
+  margin-top: 3px;
 }
 
-.player-token {
-  width: 12px;
-  height: 12px;
+.eye {
+  width: 8px;
+  height: 8px;
+  background-color: #ffffff;
   border-radius: 50%;
-  border: 1px solid #fff;
-}
-
-.sidebar {
-  width: 260px;
-}
-
-.player-card {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  background: #231e3d;
-  padding: 8px;
-  margin-bottom: 6px;
-  border-radius: 4px;
-}
-
-.color-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-}
-
-.log-box {
-  height: 300px;
-  overflow-y: auto;
-  background: #1a162b;
-  border: 1px solid #2d2845;
-  padding: 8px;
-  font-size: 11px;
-}
-
-.action-buttons button, .bid-controls button {
-  background: #6200ea;
-  color: white;
-  border: none;
-  padding: 8px 12px;
-  margin: 4px;
-  border-radius: 4px;
-  cursor: pointer;
+  justify-content: center;
+  align-items: flex-start;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
