@@ -49,7 +49,7 @@ const DEFAULT_BOARD = [
   { id: 39, name: "Tokyo", price: 400, colorGroup: "#6366f1", countryCode: "JP", type: "PROPERTY" }
 ];
 
-// Symmetrical 40-Tile Grid Position Mapping around 11x11 Grid
+// Symmetrical 40-Tile Grid Position Mapping (11x11 Grid)
 const getTileGridStyle = (index) => {
   if (index >= 0 && index <= 10) {
     return { gridColumn: 11 - index, gridRow: 11 };
@@ -93,30 +93,44 @@ export default function MonopolyBoard() {
     };
   }, []);
 
-  // Smooth Token Walking Engine
+  // Step-by-Step Walking Animation Engine
   useEffect(() => {
     if (!gameState?.players) return;
 
-    gameState.players.forEach((player) => {
-      const targetPos = player.position;
-      const currentPos = displayPositions[player.id] ?? targetPos;
-
-      if (currentPos !== targetPos) {
-        const interval = setInterval(() => {
-          setDisplayPositions((prev) => {
-            const pos = prev[player.id] ?? currentPos;
-            if (pos === targetPos) {
-              clearInterval(interval);
-              return prev;
-            }
-            const nextPos = (pos + 1) % 40;
-            return { ...prev, [player.id]: nextPos };
-          });
-        }, 150);
-
-        return () => clearInterval(interval);
-      }
+    // Initialize display positions for new players
+    setDisplayPositions((prev) => {
+      const initial = { ...prev };
+      let updated = false;
+      gameState.players.forEach((p) => {
+        if (initial[p.id] === undefined) {
+          initial[p.id] = p.position;
+          updated = true;
+        }
+      });
+      return updated ? initial : prev;
     });
+
+    // Step tokens forward 1 tile at a time every 220ms
+    const timer = setInterval(() => {
+      setDisplayPositions((prev) => {
+        let hasMoved = false;
+        const nextPositions = { ...prev };
+
+        gameState.players.forEach((p) => {
+          const current = nextPositions[p.id];
+          const target = p.position;
+
+          if (current !== undefined && current !== target) {
+            nextPositions[p.id] = (current + 1) % 40;
+            hasMoved = true;
+          }
+        });
+
+        return hasMoved ? nextPositions : prev;
+      });
+    }, 220);
+
+    return () => clearInterval(timer);
   }, [gameState]);
 
   const handleJoin = (e) => {
@@ -185,7 +199,6 @@ export default function MonopolyBoard() {
     );
   }
 
-  // Fallback to DEFAULT_BOARD if engine getState() omits board array
   const rawBoard = gameState?.board || gameState?.tiles;
   const board = Array.isArray(rawBoard) && rawBoard.length > 0 ? rawBoard : DEFAULT_BOARD;
 
@@ -197,11 +210,6 @@ export default function MonopolyBoard() {
   const isMyTurn = currentTurnPlayer.id === socket?.id;
 
   const renderTile = (tile, tileIndex) => {
-    const playersOnTile = players.filter((p) => {
-      const pos = displayPositions[p.id] ?? p.position;
-      return pos === tileIndex;
-    });
-
     return (
       <div
         key={tileIndex}
@@ -226,26 +234,6 @@ export default function MonopolyBoard() {
 
           <div className="tile-name">{tile?.name}</div>
           {tile?.price && <div className="tile-price">${tile.price}</div>}
-
-          <div className="player-tokens-container">
-            {playersOnTile.map((player) => (
-              <div
-                key={player.id}
-                className="player-character-token"
-                style={{ backgroundColor: player.color || "#6366f1" }}
-                title={player.name}
-              >
-                <div className="character-eyes">
-                  <div className="eye">
-                    <div className="pupil" />
-                  </div>
-                  <div className="eye">
-                    <div className="pupil" />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
     );
@@ -253,7 +241,7 @@ export default function MonopolyBoard() {
 
   return (
     <div className="game-wrapper">
-      <div className="board-container">
+      <div className="board-container" style={{ position: "relative" }}>
         <div className="board-center">
           <h1>Monopoly</h1>
 
@@ -306,7 +294,50 @@ export default function MonopolyBoard() {
           )}
         </div>
 
+        {/* 1. Board Tiles */}
         {board.map((tile, index) => renderTile(tile, index))}
+
+        {/* 2. Floating Persistent Player Tokens with Smooth GPU Transitions */}
+        {players.map((player, pIdx) => {
+          const pos = displayPositions[player.id] ?? player.position;
+          const gridStyle = getTileGridStyle(pos);
+          const col = gridStyle.gridColumn - 1; // 0 to 10
+          const row = gridStyle.gridRow - 1;    // 0 to 10
+
+          // Offset multiple tokens on the same tile slightly so they don't overlap
+          const offsetX = (pIdx % 2) * 12 - 6;
+          const offsetY = Math.floor(pIdx / 2) * 12 - 6;
+
+          // Compute continuous grid percentage coordinates
+          const leftPct = (col / 11) * 100 + 2.2;
+          const topPct = (row / 11) * 100 + 3.2;
+
+          return (
+            <div
+              key={player.id}
+              className="player-character-token"
+              style={{
+                position: "absolute",
+                left: `calc(${leftPct}% + ${offsetX}px)`,
+                top: `calc(${topPct}% + ${offsetY}px)`,
+                backgroundColor: player.color || "#6366f1",
+                transition: "left 0.22s cubic-bezier(0.25, 1, 0.5, 1), top 0.22s cubic-bezier(0.25, 1, 0.5, 1)",
+                zIndex: 30,
+                pointerEvents: "none"
+              }}
+              title={player.name}
+            >
+              <div className="character-eyes">
+                <div className="eye">
+                  <div className="pupil" />
+                </div>
+                <div className="eye">
+                  <div className="pupil" />
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       <div className="sidebar">
