@@ -5,59 +5,19 @@ import "./MonopolyBoard.css";
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
 let socket;
 
-// Complete 40-Tile Board Fallback matching MonopolyEngine (% 40) logic
-const DEFAULT_BOARD = [
-  { id: 0, name: "START", type: "CORNER" },
-  { id: 1, name: "Salvador", price: 60, colorGroup: "#8b5cf6", countryCode: "BR", type: "PROPERTY" },
-  { id: 2, name: "Community Chest", type: "CHEST" },
-  { id: 3, name: "Rio", price: 60, colorGroup: "#8b5cf6", countryCode: "BR", type: "PROPERTY" },
-  { id: 4, name: "Income Tax", price: 200, type: "TAX" },
-  { id: 5, name: "Reading Railroad", price: 200, type: "RAILROAD" },
-  { id: 6, name: "Tel Aviv", price: 100, colorGroup: "#3b82f6", countryCode: "IL", type: "PROPERTY" },
-  { id: 7, name: "Chance", type: "CHANCE" },
-  { id: 8, name: "Haifa", price: 100, colorGroup: "#3b82f6", countryCode: "IL", type: "PROPERTY" },
-  { id: 9, name: "Jerusalem", price: 120, colorGroup: "#3b82f6", countryCode: "IL", type: "PROPERTY" },
-  { id: 10, name: "In Prison / Visiting", type: "CORNER" },
-  { id: 11, name: "Venice", price: 140, colorGroup: "#ec4899", countryCode: "IT", type: "PROPERTY" },
-  { id: 12, name: "Electric Company", price: 150, type: "UTILITY" },
-  { id: 13, name: "Milan", price: 140, colorGroup: "#ec4899", countryCode: "IT", type: "PROPERTY" },
-  { id: 14, name: "Rome", price: 160, colorGroup: "#ec4899", countryCode: "IT", type: "PROPERTY" },
-  { id: 15, name: "Pennsylvania Railroad", price: 200, type: "RAILROAD" },
-  { id: 16, name: "Frankfurt", price: 180, colorGroup: "#f59e0b", countryCode: "DE", type: "PROPERTY" },
-  { id: 17, name: "Community Chest", type: "CHEST" },
-  { id: 18, name: "Munich", price: 180, colorGroup: "#f59e0b", countryCode: "DE", type: "PROPERTY" },
-  { id: 19, name: "Berlin", price: 200, colorGroup: "#f59e0b", countryCode: "DE", type: "PROPERTY" },
-  { id: 20, name: "Free Parking", type: "CORNER" },
-  { id: 21, name: "CDG Airport", price: 220, colorGroup: "#10b981", countryCode: "FR", type: "PROPERTY" },
-  { id: 22, name: "Chance", type: "CHANCE" },
-  { id: 23, name: "Nice", price: 220, colorGroup: "#10b981", countryCode: "FR", type: "PROPERTY" },
-  { id: 24, name: "Lyon", price: 240, colorGroup: "#10b981", countryCode: "FR", type: "PROPERTY" },
-  { id: 25, name: "B&O Railroad", price: 200, type: "RAILROAD" },
-  { id: 26, name: "Liverpool", price: 260, colorGroup: "#e11d48", countryCode: "GB", type: "PROPERTY" },
-  { id: 27, name: "Manchester", price: 260, colorGroup: "#e11d48", countryCode: "GB", type: "PROPERTY" },
-  { id: 28, name: "Water Works", price: 150, type: "UTILITY" },
-  { id: 29, name: "London", price: 280, colorGroup: "#e11d48", countryCode: "GB", type: "PROPERTY" },
-  { id: 30, name: "Go To Prison", type: "CORNER" },
-  { id: 31, name: "San Francisco", price: 300, colorGroup: "#ef4444", countryCode: "US", type: "PROPERTY" },
-  { id: 32, name: "Seattle", price: 300, colorGroup: "#ef4444", countryCode: "US", type: "PROPERTY" },
-  { id: 33, name: "Community Chest", type: "CHEST" },
-  { id: 34, name: "New York", price: 320, colorGroup: "#ef4444", countryCode: "US", type: "PROPERTY" },
-  { id: 35, name: "Short Line Railroad", price: 200, type: "RAILROAD" },
-  { id: 36, name: "Chance", type: "CHANCE" },
-  { id: 37, name: "Tokyo", price: 350, colorGroup: "#6366f1", countryCode: "JP", type: "PROPERTY" },
-  { id: 38, name: "Luxury Tax", price: 100, type: "TAX" },
-  { id: 39, name: "Osaka", price: 400, colorGroup: "#6366f1", countryCode: "JP", type: "PROPERTY" }
-];
-
-// Maps 40 tiles around the perimeter of an 11x11 Grid
+// Symmetrical 40-Tile Mapping around an 11x11 Grid
 const getTileGridStyle = (index) => {
   if (index >= 0 && index <= 10) {
+    // Bottom edge (START at 11,11 -> Jail at 1,11)
     return { gridColumn: 11 - index, gridRow: 11 };
   } else if (index >= 11 && index <= 20) {
+    // Left edge (1,10 up to Free Parking at 1,1)
     return { gridColumn: 1, gridRow: 11 - (index - 10) };
   } else if (index >= 21 && index <= 30) {
+    // Top edge (2,1 right to Go To Jail at 11,1)
     return { gridColumn: 1 + (index - 20), gridRow: 1 };
   } else if (index >= 31 && index <= 39) {
+    // Right edge (11,2 down to 11,10)
     return { gridColumn: 11, gridRow: 1 + (index - 30) };
   }
   return {};
@@ -69,6 +29,7 @@ export default function MonopolyBoard() {
   const [joined, setJoined] = useState(false);
   const [lobbyPlayers, setLobbyPlayers] = useState([]);
   const [gameState, setGameState] = useState(null);
+  const [displayPositions, setDisplayPositions] = useState({});
   const [bidAmount, setBidAmount] = useState("");
 
   useEffect(() => {
@@ -91,6 +52,32 @@ export default function MonopolyBoard() {
       socket.disconnect();
     };
   }, []);
+
+  // Smooth Step-by-Step Token Hop Movement (150ms per tile)
+  useEffect(() => {
+    if (!gameState?.players) return;
+
+    gameState.players.forEach((player) => {
+      const targetPos = player.position;
+      const currentPos = displayPositions[player.id] ?? targetPos;
+
+      if (currentPos !== targetPos) {
+        const interval = setInterval(() => {
+          setDisplayPositions((prev) => {
+            const pos = prev[player.id] ?? currentPos;
+            if (pos === targetPos) {
+              clearInterval(interval);
+              return prev;
+            }
+            const nextPos = (pos + 1) % 40;
+            return { ...prev, [player.id]: nextPos };
+          });
+        }, 150);
+
+        return () => clearInterval(interval);
+      }
+    });
+  }, [gameState]);
 
   const handleJoin = (e) => {
     e.preventDefault();
@@ -116,7 +103,6 @@ export default function MonopolyBoard() {
   const handlePassBid = () => socket.emit("ACTION_PASS_BID", { roomCode });
   const handleEndTurn = () => socket.emit("ACTION_END_TURN", { roomCode });
 
-  // 1. Join Screen
   if (!joined) {
     return (
       <div className="lobby-container">
@@ -142,7 +128,6 @@ export default function MonopolyBoard() {
     );
   }
 
-  // 2. Pre-Game Lobby
   if (!gameState) {
     return (
       <div className="lobby-container">
@@ -160,18 +145,19 @@ export default function MonopolyBoard() {
     );
   }
 
-  const board = DEFAULT_BOARD;
+  const board = gameState?.board || [];
   const players = gameState?.players || [];
   const logs = gameState?.log || [];
   const turnPhase = gameState?.turnPhase;
 
-  // Active player resolution
   const currentTurnPlayer = players[gameState?.turnIndex] || players[0] || {};
   const isMyTurn = currentTurnPlayer.id === socket?.id;
 
-  // Render individual tiles
   const renderTile = (tile, tileIndex) => {
-    const playersOnTile = players.filter((p) => p.position === tileIndex);
+    const playersOnTile = players.filter((p) => {
+      const pos = displayPositions[p.id] ?? p.position;
+      return pos === tileIndex;
+    });
 
     return (
       <div
@@ -198,7 +184,6 @@ export default function MonopolyBoard() {
           <div className="tile-name">{tile?.name}</div>
           {tile?.price && <div className="tile-price">${tile.price}</div>}
 
-          {/* Player Character Tokens */}
           <div className="player-tokens-container">
             {playersOnTile.map((player) => (
               <div
@@ -223,11 +208,9 @@ export default function MonopolyBoard() {
     );
   };
 
-  // 3. Live Game Board
   return (
     <div className="game-wrapper">
       <div className="board-container">
-        {/* Center Control Panel */}
         <div className="board-center">
           <h1>Monopoly</h1>
 
@@ -241,7 +224,6 @@ export default function MonopolyBoard() {
             Current Turn: <strong>{currentTurnPlayer.name || "N/A"}</strong>
           </div>
 
-          {/* Action Buttons mapped directly to turnPhase */}
           {isMyTurn && (
             <div className="action-buttons">
               {turnPhase === "AWAITING_ROLL" && (
@@ -261,7 +243,6 @@ export default function MonopolyBoard() {
             </div>
           )}
 
-          {/* Auction UI */}
           {turnPhase === "AUCTION" && gameState?.auction && (
             <div className="auction-controls" style={{ marginTop: "12px" }}>
               <p>Auction in Progress! Highest Bid: ${gameState.auction.currentBid || 0}</p>
@@ -282,11 +263,9 @@ export default function MonopolyBoard() {
           )}
         </div>
 
-        {/* 40 Perimeter Tiles */}
         {board.map((tile, index) => renderTile(tile, index))}
       </div>
 
-      {/* Right Sidebar */}
       <div className="sidebar">
         <div className="player-list">
           <h3>Players</h3>
