@@ -5,50 +5,6 @@ import "./MonopolyBoard.css";
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
 let socket;
 
-// Complete 40-Tile Board Fallback
-const DEFAULT_BOARD = [
-  { id: 0, name: "START", type: "CORNER" },
-  { id: 1, name: "Salvador", price: 60, colorGroup: "#8b5cf6", countryCode: "BR", type: "PROPERTY" },
-  { id: 2, name: "Community Chest", type: "CHEST" },
-  { id: 3, name: "Rio", price: 60, colorGroup: "#8b5cf6", countryCode: "BR", type: "PROPERTY" },
-  { id: 4, name: "Income Tax", price: 200, type: "TAX" },
-  { id: 5, name: "TLV Airport", price: 200, type: "RAILROAD" },
-  { id: 6, name: "Tel Aviv", price: 100, colorGroup: "#3b82f6", countryCode: "IL", type: "PROPERTY" },
-  { id: 7, name: "Chance", type: "CHANCE" },
-  { id: 8, name: "Haifa", price: 100, colorGroup: "#3b82f6", countryCode: "IL", type: "PROPERTY" },
-  { id: 9, name: "Jerusalem", price: 120, colorGroup: "#3b82f6", countryCode: "IL", type: "PROPERTY" },
-  { id: 10, name: "In Prison / Visiting", type: "CORNER" },
-  { id: 11, name: "Venice", price: 140, colorGroup: "#ec4899", countryCode: "IT", type: "PROPERTY" },
-  { id: 12, name: "Electric Company", price: 150, type: "UTILITY" },
-  { id: 13, name: "Milan", price: 140, colorGroup: "#ec4899", countryCode: "IT", type: "PROPERTY" },
-  { id: 14, name: "Rome", price: 160, colorGroup: "#ec4899", countryCode: "IT", type: "PROPERTY" },
-  { id: 15, name: "MUC Airport", price: 200, type: "RAILROAD" },
-  { id: 16, name: "Frankfurt", price: 180, colorGroup: "#f59e0b", countryCode: "DE", type: "PROPERTY" },
-  { id: 17, name: "Community Chest", type: "CHEST" },
-  { id: 18, name: "Munich", price: 180, colorGroup: "#f59e0b", countryCode: "DE", type: "PROPERTY" },
-  { id: 19, name: "Berlin", price: 200, colorGroup: "#f59e0b", countryCode: "DE", type: "PROPERTY" },
-  { id: 20, name: "Free Parking", type: "CORNER" },
-  { id: 21, name: "Paris", price: 220, colorGroup: "#10b981", countryCode: "FR", type: "PROPERTY" },
-  { id: 22, name: "Chance", type: "CHANCE" },
-  { id: 23, name: "Nice", price: 220, colorGroup: "#10b981", countryCode: "FR", type: "PROPERTY" },
-  { id: 24, name: "Lyon", price: 240, colorGroup: "#10b981", countryCode: "FR", type: "PROPERTY" },
-  { id: 25, name: "CDG Airport", price: 200, type: "RAILROAD" },
-  { id: 26, name: "Liverpool", price: 260, colorGroup: "#e11d48", countryCode: "GB", type: "PROPERTY" },
-  { id: 27, name: "Manchester", price: 260, colorGroup: "#e11d48", countryCode: "GB", type: "PROPERTY" },
-  { id: 28, name: "Water Works", price: 150, type: "UTILITY" },
-  { id: 29, name: "London", price: 280, colorGroup: "#e11d48", countryCode: "GB", type: "PROPERTY" },
-  { id: 30, name: "Go To Prison", type: "CORNER" },
-  { id: 31, name: "San Francisco", price: 300, colorGroup: "#ef4444", countryCode: "US", type: "PROPERTY" },
-  { id: 32, name: "Seattle", price: 300, colorGroup: "#ef4444", countryCode: "US", type: "PROPERTY" },
-  { id: 33, name: "Community Chest", type: "CHEST" },
-  { id: 34, name: "New York", price: 320, colorGroup: "#ef4444", countryCode: "US", type: "PROPERTY" },
-  { id: 35, name: "JFK Airport", price: 200, type: "RAILROAD" },
-  { id: 36, name: "Chance", type: "CHANCE" },
-  { id: 37, name: "Kyoto", price: 350, colorGroup: "#6366f1", countryCode: "JP", type: "PROPERTY" },
-  { id: 38, name: "Luxury Tax", price: 100, type: "TAX" },
-  { id: 39, name: "Tokyo", price: 400, colorGroup: "#6366f1", countryCode: "JP", type: "PROPERTY" }
-];
-
 // Symmetrical 40-Tile Grid Position Mapping (11x11 Grid)
 const getTileGridStyle = (index) => {
   if (index >= 0 && index <= 10) {
@@ -93,11 +49,10 @@ export default function MonopolyBoard() {
     };
   }, []);
 
-  // Step-by-Step Walking Animation Engine
+  // Continuous Linear Step-by-Step Walking Animation Engine
   useEffect(() => {
     if (!gameState?.players) return;
 
-    // Initialize display positions for new players
     setDisplayPositions((prev) => {
       const initial = { ...prev };
       let updated = false;
@@ -110,7 +65,6 @@ export default function MonopolyBoard() {
       return updated ? initial : prev;
     });
 
-    // Step tokens forward 1 tile at a time every 220ms
     const timer = setInterval(() => {
       setDisplayPositions((prev) => {
         let hasMoved = false;
@@ -128,7 +82,7 @@ export default function MonopolyBoard() {
 
         return hasMoved ? nextPositions : prev;
       });
-    }, 220);
+    }, 150); // 150ms per step
 
     return () => clearInterval(timer);
   }, [gameState]);
@@ -199,9 +153,7 @@ export default function MonopolyBoard() {
     );
   }
 
-  const rawBoard = gameState?.board || gameState?.tiles;
-  const board = Array.isArray(rawBoard) && rawBoard.length > 0 ? rawBoard : DEFAULT_BOARD;
-
+  const board = gameState?.board || [];
   const players = gameState?.players || [];
   const logs = gameState?.log || [];
   const turnPhase = gameState?.turnPhase;
@@ -294,34 +246,35 @@ export default function MonopolyBoard() {
           )}
         </div>
 
-        {/* 1. Board Tiles */}
+        {/* 1. Board Grid Tiles */}
         {board.map((tile, index) => renderTile(tile, index))}
 
-        {/* 2. Floating Persistent Player Tokens with Smooth GPU Transitions */}
+        {/* 2. Floating Animated Player Tokens with Linear GPU Transitions */}
         {players.map((player, pIdx) => {
           const pos = displayPositions[player.id] ?? player.position;
           const gridStyle = getTileGridStyle(pos);
-          const col = gridStyle.gridColumn - 1; // 0 to 10
-          const row = gridStyle.gridRow - 1;    // 0 to 10
+          const colIndex = gridStyle.gridColumn - 1; // 0 to 10
+          const rowIndex = gridStyle.gridRow - 1;    // 0 to 10
 
-          // Offset multiple tokens on the same tile slightly so they don't overlap
+          // Calculate exact center percentages on an 11x11 grid
+          const colCenter = ((colIndex + 0.5) / 11) * 100;
+          const rowCenter = ((rowIndex + 0.5) / 11) * 100;
+
+          // Offset tokens on the same tile so they don't hide each other
           const offsetX = (pIdx % 2) * 12 - 6;
           const offsetY = Math.floor(pIdx / 2) * 12 - 6;
-
-          // Compute continuous grid percentage coordinates
-          const leftPct = (col / 11) * 100 + 2.2;
-          const topPct = (row / 11) * 100 + 3.2;
 
           return (
             <div
               key={player.id}
-              className="player-character-token"
+              className="player-character-token floating-token"
               style={{
                 position: "absolute",
-                left: `calc(${leftPct}% + ${offsetX}px)`,
-                top: `calc(${topPct}% + ${offsetY}px)`,
+                left: `calc(${colCenter}% + ${offsetX}px)`,
+                top: `calc(${rowCenter}% + ${offsetY}px)`,
+                transform: "translate(-50%, -50%)",
                 backgroundColor: player.color || "#6366f1",
-                transition: "left 0.22s cubic-bezier(0.25, 1, 0.5, 1), top 0.22s cubic-bezier(0.25, 1, 0.5, 1)",
+                transition: "left 0.15s linear, top 0.15s linear",
                 zIndex: 30,
                 pointerEvents: "none"
               }}
