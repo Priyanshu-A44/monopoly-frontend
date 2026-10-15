@@ -203,58 +203,8 @@ body {
   cursor: pointer;
 }
 
-/* House & Hotel Building Overlay Menu */
-.build-menu {
-  margin-top: 10px;
-  background: #1c1a36;
-  border: 1px solid #3b82f6;
-  padding: 10px 14px;
-  border-radius: 8px;
-  max-width: 320px;
-  width: 100%;
-}
-
-.build-menu h4 {
-  font-size: 0.85rem;
-  color: #a5b4fc;
-  margin-bottom: 6px;
-}
-
-.build-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  max-height: 110px;
-  overflow-y: auto;
-}
-
-.build-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.75rem;
-  background: #121124;
-  padding: 6px 8px;
-  border-radius: 4px;
-}
-
-.build-item button {
-  padding: 3px 8px;
-  font-size: 0.7rem;
-  background-color: #10b981;
-  border: none;
-  border-radius: 4px;
-  color: white;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.build-item button:hover {
-  background-color: #059669;
-}
-
 /* ==========================================================================
-   5. Tile Visuals, Color Bars, Flags, Owner Badges & Houses/Hotels
+   5. Tile Visuals, Color Bars, Flags, Owner Badges & Mortgaged Tags
    ========================================================================== */
 .tile {
   background-color: #1a1833;
@@ -266,11 +216,17 @@ body {
   font-size: 0.7rem;
   text-align: center;
   border-radius: 2px;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.1s;
 }
 
-.tile.empty {
-  background: transparent;
-  border: none;
+.tile:hover {
+  border-color: #6366f1;
+  z-index: 15;
+}
+
+.tile.mortgaged {
+  opacity: 0.65;
 }
 
 .tile-color-bar {
@@ -319,7 +275,7 @@ body {
   font-weight: 500;
 }
 
-/* Property Owner Color-Coded Badge */
+/* Property Owner Badge */
 .owner-badge {
   position: absolute;
   bottom: 2px;
@@ -332,7 +288,7 @@ body {
   z-index: 10;
 }
 
-/* Houses & Hotels Display */
+/* Houses & Hotels Visuals */
 .houses-container {
   position: absolute;
   bottom: 2px;
@@ -346,6 +302,18 @@ body {
 
 .house-symbol, .hotel-symbol {
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8));
+}
+
+.mortgage-tag {
+  font-size: 0.45rem;
+  font-weight: bold;
+  color: #ef4444;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 1px 3px;
+  border-radius: 2px;
+  position: absolute;
+  top: 14px;
+  letter-spacing: 0.3px;
 }
 
 /* ==========================================================================
@@ -389,7 +357,196 @@ body {
 }
 
 /* ==========================================================================
-   7. Sidebar, Player List & Game Log
+   7. Property Details Modal Popup (Card Reference UI)
+   ========================================================================== */
+.tile-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.tile-card-modal {
+  width: 310px;
+  background: linear-gradient(145deg, #1d1a33, #151328);
+  border: 1px solid #363260;
+  border-radius: 16px;
+  padding: 20px 22px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  color: #ffffff;
+}
+
+.close-modal-btn {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.close-modal-btn:hover {
+  color: #ffffff;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.modal-flag {
+  width: 28px;
+  height: 18px;
+  object-fit: cover;
+  border-radius: 3px;
+}
+
+.modal-header h2 {
+  font-size: 1.4rem;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+
+.rent-table-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: #818cf8;
+  border-bottom: 1px dashed #333055;
+  padding-bottom: 4px;
+  margin-bottom: 8px;
+}
+
+.rent-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.rent-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: #cbd5e1;
+}
+
+.rent-row.highlight {
+  color: #38bdf8;
+  font-weight: bold;
+}
+
+.modal-cost-footer {
+  display: flex;
+  justify-content: space-between;
+  background: #100f21;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #282548;
+  margin-bottom: 14px;
+}
+
+.cost-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.cost-label {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  margin-bottom: 2px;
+}
+
+.cost-val {
+  font-size: 0.95rem;
+  color: #f1f5f9;
+}
+
+.modal-owner-info {
+  text-align: center;
+  font-size: 0.85rem;
+  margin-bottom: 12px;
+}
+
+.unowned-text {
+  color: #64748b;
+  font-style: italic;
+}
+
+.modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.modal-btn {
+  padding: 9px;
+  border-radius: 8px;
+  border: none;
+  font-weight: bold;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-build {
+  background: #8b5cf6;
+  color: white;
+}
+
+.btn-build:hover {
+  background: #7c3aed;
+}
+
+.btn-mortgage {
+  background: #f59e0b;
+  color: white;
+}
+
+.btn-mortgage:hover {
+  background: #d97706;
+}
+
+.btn-unmortgage {
+  background: #10b981;
+  color: white;
+}
+
+.btn-unmortgage:hover {
+  background: #059669;
+}
+
+.special-tile-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 0;
+}
+
+.tile-icon-large {
+  font-size: 3rem;
+  margin-bottom: 10px;
+}
+
+/* ==========================================================================
+   8. Sidebar, Player List & Game Log
    ========================================================================== */
 .sidebar {
   width: 320px;
@@ -440,4 +597,9 @@ body {
   padding: 6px;
   background: #1c1a36;
   border-radius: 4px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
