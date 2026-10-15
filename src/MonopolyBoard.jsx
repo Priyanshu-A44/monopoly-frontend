@@ -5,6 +5,70 @@ import "./MonopolyBoard.css";
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
 let socket;
 
+// Complete 40-Tile Board Fallback with "Vacation" at Tile 20
+const DEFAULT_BOARD = [
+  { id: 0, name: "START", type: "CORNER" },
+  { id: 1, name: "Salvador", price: 60, colorGroup: "#8b5cf6", countryCode: "BR", type: "PROPERTY" },
+  { id: 2, name: "Community Chest", type: "CHEST" },
+  { id: 3, name: "Rio", price: 60, colorGroup: "#8b5cf6", countryCode: "BR", type: "PROPERTY" },
+  { id: 4, name: "Income Tax", price: 200, type: "TAX" },
+  { id: 5, name: "TLV Airport", price: 200, type: "RAILROAD" },
+  { id: 6, name: "Tel Aviv", price: 100, colorGroup: "#3b82f6", countryCode: "IL", type: "PROPERTY" },
+  { id: 7, name: "Chance", type: "CHANCE" },
+  { id: 8, name: "Haifa", price: 100, colorGroup: "#3b82f6", countryCode: "IL", type: "PROPERTY" },
+  { id: 9, name: "Jerusalem", price: 120, colorGroup: "#3b82f6", countryCode: "IL", type: "PROPERTY" },
+  { id: 10, name: "In Prison / Visiting", type: "CORNER" },
+  { id: 11, name: "Venice", price: 140, colorGroup: "#ec4899", countryCode: "IT", type: "PROPERTY" },
+  { id: 12, name: "Electric Company", price: 150, type: "UTILITY" },
+  { id: 13, name: "Milan", price: 140, colorGroup: "#ec4899", countryCode: "IT", type: "PROPERTY" },
+  { id: 14, name: "Rome", price: 160, colorGroup: "#ec4899", countryCode: "IT", type: "PROPERTY" },
+  { id: 15, name: "MUC Airport", price: 200, type: "RAILROAD" },
+  { id: 16, name: "Frankfurt", price: 180, colorGroup: "#f59e0b", countryCode: "DE", type: "PROPERTY" },
+  { id: 17, name: "Community Chest", type: "CHEST" },
+  { id: 18, name: "Munich", price: 180, colorGroup: "#f59e0b", countryCode: "DE", type: "PROPERTY" },
+  { id: 19, name: "Berlin", price: 200, colorGroup: "#f59e0b", countryCode: "DE", type: "PROPERTY" },
+  { id: 20, name: "Vacation", type: "CORNER" },
+  { id: 21, name: "Paris", price: 220, colorGroup: "#10b981", countryCode: "FR", type: "PROPERTY" },
+  { id: 22, name: "Chance", type: "CHANCE" },
+  { id: 23, name: "Nice", price: 220, colorGroup: "#10b981", countryCode: "FR", type: "PROPERTY" },
+  { id: 24, name: "Lyon", price: 240, colorGroup: "#10b981", countryCode: "FR", type: "PROPERTY" },
+  { id: 25, name: "CDG Airport", price: 200, type: "RAILROAD" },
+  { id: 26, name: "Liverpool", price: 260, colorGroup: "#e11d48", countryCode: "GB", type: "PROPERTY" },
+  { id: 27, name: "Manchester", price: 260, colorGroup: "#e11d48", countryCode: "GB", type: "PROPERTY" },
+  { id: 28, name: "Water Works", price: 150, type: "UTILITY" },
+  { id: 29, name: "London", price: 280, colorGroup: "#e11d48", countryCode: "GB", type: "PROPERTY" },
+  { id: 30, name: "Go To Prison", type: "CORNER" },
+  { id: 31, name: "San Francisco", price: 300, colorGroup: "#ef4444", countryCode: "US", type: "PROPERTY" },
+  { id: 32, name: "Seattle", price: 300, colorGroup: "#ef4444", countryCode: "US", type: "PROPERTY" },
+  { id: 33, name: "Community Chest", type: "CHEST" },
+  { id: 34, name: "New York", price: 320, colorGroup: "#ef4444", countryCode: "US", type: "PROPERTY" },
+  { id: 35, name: "JFK Airport", price: 200, type: "RAILROAD" },
+  { id: 36, name: "Chance", type: "CHANCE" },
+  { id: 37, name: "Kyoto", price: 350, colorGroup: "#6366f1", countryCode: "JP", type: "PROPERTY" },
+  { id: 38, name: "Luxury Tax", price: 100, type: "TAX" },
+  { id: 39, name: "Tokyo", price: 400, colorGroup: "#6366f1", countryCode: "JP", type: "PROPERTY" }
+];
+
+// Returns custom visual icons for non-country property tiles
+const getTileIcon = (tile) => {
+  if (!tile) return null;
+  const name = tile.name?.toLowerCase() || "";
+  const type = tile.type || "";
+
+  if (name.includes("start")) return "🏁";
+  if (name.includes("vacation") || name.includes("free parking")) return "🏝️";
+  if (name.includes("go to prison")) return "🚔";
+  if (name.includes("in prison") || name.includes("visiting")) return "🔒";
+  if (type === "CHEST" || name.includes("chest")) return "📦";
+  if (type === "CHANCE" || name.includes("chance")) return "❓";
+  if (type === "RAILROAD" || name.includes("airport")) return "✈️";
+  if (type === "TAX" || name.includes("tax")) return "💸";
+  if (name.includes("electric")) return "⚡";
+  if (name.includes("water")) return "💧";
+
+  return null;
+};
+
 // Symmetrical 40-Tile Grid Position Mapping (11x11 Grid)
 const getTileGridStyle = (index) => {
   if (index >= 0 && index <= 10) {
@@ -49,7 +113,7 @@ export default function MonopolyBoard() {
     };
   }, []);
 
-  // Continuous Linear Step-by-Step Walking Animation Engine
+  // Continuous Step-by-Step Walking Animation Engine
   useEffect(() => {
     if (!gameState?.players) return;
 
@@ -82,7 +146,7 @@ export default function MonopolyBoard() {
 
         return hasMoved ? nextPositions : prev;
       });
-    }, 150); // 150ms per step
+    }, 150);
 
     return () => clearInterval(timer);
   }, [gameState]);
@@ -153,7 +217,7 @@ export default function MonopolyBoard() {
     );
   }
 
-  const board = gameState?.board || [];
+  const board = gameState?.board || DEFAULT_BOARD;
   const players = gameState?.players || [];
   const logs = gameState?.log || [];
   const turnPhase = gameState?.turnPhase;
@@ -162,6 +226,8 @@ export default function MonopolyBoard() {
   const isMyTurn = currentTurnPlayer.id === socket?.id;
 
   const renderTile = (tile, tileIndex) => {
+    const icon = getTileIcon(tile);
+
     return (
       <div
         key={tileIndex}
@@ -176,13 +242,16 @@ export default function MonopolyBoard() {
         )}
 
         <div className="tile-content">
-          {tile?.countryCode && (
+          {/* Country Flag or Special Tile Icon */}
+          {tile?.countryCode ? (
             <img
               src={`https://flagcdn.com/w40/${tile.countryCode.toLowerCase()}.png`}
               alt={tile.countryCode}
               className="tile-flag"
             />
-          )}
+          ) : icon ? (
+            <div className="tile-icon">{icon}</div>
+          ) : null}
 
           <div className="tile-name">{tile?.name}</div>
           {tile?.price && <div className="tile-price">${tile.price}</div>}
@@ -249,18 +318,16 @@ export default function MonopolyBoard() {
         {/* 1. Board Grid Tiles */}
         {board.map((tile, index) => renderTile(tile, index))}
 
-        {/* 2. Floating Animated Player Tokens with Linear GPU Transitions */}
+        {/* 2. Floating Animated Player Tokens */}
         {players.map((player, pIdx) => {
           const pos = displayPositions[player.id] ?? player.position;
           const gridStyle = getTileGridStyle(pos);
-          const colIndex = gridStyle.gridColumn - 1; // 0 to 10
-          const rowIndex = gridStyle.gridRow - 1;    // 0 to 10
+          const colIndex = gridStyle.gridColumn - 1;
+          const rowIndex = gridStyle.gridRow - 1;
 
-          // Calculate exact center percentages on an 11x11 grid
           const colCenter = ((colIndex + 0.5) / 11) * 100;
           const rowCenter = ((rowIndex + 0.5) / 11) * 100;
 
-          // Offset tokens on the same tile so they don't hide each other
           const offsetX = (pIdx % 2) * 12 - 6;
           const offsetY = Math.floor(pIdx / 2) * 12 - 6;
 
