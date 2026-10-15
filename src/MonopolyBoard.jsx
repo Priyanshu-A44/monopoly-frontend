@@ -5,19 +5,59 @@ import "./MonopolyBoard.css";
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
 let socket;
 
-// Symmetrical 40-Tile Mapping around an 11x11 Grid
+// Complete 40-Tile Board Fallback
+const DEFAULT_BOARD = [
+  { id: 0, name: "START", type: "CORNER" },
+  { id: 1, name: "Salvador", price: 60, colorGroup: "#8b5cf6", countryCode: "BR", type: "PROPERTY" },
+  { id: 2, name: "Community Chest", type: "CHEST" },
+  { id: 3, name: "Rio", price: 60, colorGroup: "#8b5cf6", countryCode: "BR", type: "PROPERTY" },
+  { id: 4, name: "Income Tax", price: 200, type: "TAX" },
+  { id: 5, name: "TLV Airport", price: 200, type: "RAILROAD" },
+  { id: 6, name: "Tel Aviv", price: 100, colorGroup: "#3b82f6", countryCode: "IL", type: "PROPERTY" },
+  { id: 7, name: "Chance", type: "CHANCE" },
+  { id: 8, name: "Haifa", price: 100, colorGroup: "#3b82f6", countryCode: "IL", type: "PROPERTY" },
+  { id: 9, name: "Jerusalem", price: 120, colorGroup: "#3b82f6", countryCode: "IL", type: "PROPERTY" },
+  { id: 10, name: "In Prison / Visiting", type: "CORNER" },
+  { id: 11, name: "Venice", price: 140, colorGroup: "#ec4899", countryCode: "IT", type: "PROPERTY" },
+  { id: 12, name: "Electric Company", price: 150, type: "UTILITY" },
+  { id: 13, name: "Milan", price: 140, colorGroup: "#ec4899", countryCode: "IT", type: "PROPERTY" },
+  { id: 14, name: "Rome", price: 160, colorGroup: "#ec4899", countryCode: "IT", type: "PROPERTY" },
+  { id: 15, name: "MUC Airport", price: 200, type: "RAILROAD" },
+  { id: 16, name: "Frankfurt", price: 180, colorGroup: "#f59e0b", countryCode: "DE", type: "PROPERTY" },
+  { id: 17, name: "Community Chest", type: "CHEST" },
+  { id: 18, name: "Munich", price: 180, colorGroup: "#f59e0b", countryCode: "DE", type: "PROPERTY" },
+  { id: 19, name: "Berlin", price: 200, colorGroup: "#f59e0b", countryCode: "DE", type: "PROPERTY" },
+  { id: 20, name: "Free Parking", type: "CORNER" },
+  { id: 21, name: "Paris", price: 220, colorGroup: "#10b981", countryCode: "FR", type: "PROPERTY" },
+  { id: 22, name: "Chance", type: "CHANCE" },
+  { id: 23, name: "Nice", price: 220, colorGroup: "#10b981", countryCode: "FR", type: "PROPERTY" },
+  { id: 24, name: "Lyon", price: 240, colorGroup: "#10b981", countryCode: "FR", type: "PROPERTY" },
+  { id: 25, name: "CDG Airport", price: 200, type: "RAILROAD" },
+  { id: 26, name: "Liverpool", price: 260, colorGroup: "#e11d48", countryCode: "GB", type: "PROPERTY" },
+  { id: 27, name: "Manchester", price: 260, colorGroup: "#e11d48", countryCode: "GB", type: "PROPERTY" },
+  { id: 28, name: "Water Works", price: 150, type: "UTILITY" },
+  { id: 29, name: "London", price: 280, colorGroup: "#e11d48", countryCode: "GB", type: "PROPERTY" },
+  { id: 30, name: "Go To Prison", type: "CORNER" },
+  { id: 31, name: "San Francisco", price: 300, colorGroup: "#ef4444", countryCode: "US", type: "PROPERTY" },
+  { id: 32, name: "Seattle", price: 300, colorGroup: "#ef4444", countryCode: "US", type: "PROPERTY" },
+  { id: 33, name: "Community Chest", type: "CHEST" },
+  { id: 34, name: "New York", price: 320, colorGroup: "#ef4444", countryCode: "US", type: "PROPERTY" },
+  { id: 35, name: "JFK Airport", price: 200, type: "RAILROAD" },
+  { id: 36, name: "Chance", type: "CHANCE" },
+  { id: 37, name: "Kyoto", price: 350, colorGroup: "#6366f1", countryCode: "JP", type: "PROPERTY" },
+  { id: 38, name: "Luxury Tax", price: 100, type: "TAX" },
+  { id: 39, name: "Tokyo", price: 400, colorGroup: "#6366f1", countryCode: "JP", type: "PROPERTY" }
+];
+
+// Symmetrical 40-Tile Grid Position Mapping around 11x11 Grid
 const getTileGridStyle = (index) => {
   if (index >= 0 && index <= 10) {
-    // Bottom edge (START at 11,11 -> Jail at 1,11)
     return { gridColumn: 11 - index, gridRow: 11 };
   } else if (index >= 11 && index <= 20) {
-    // Left edge (1,10 up to Free Parking at 1,1)
     return { gridColumn: 1, gridRow: 11 - (index - 10) };
   } else if (index >= 21 && index <= 30) {
-    // Top edge (2,1 right to Go To Jail at 11,1)
     return { gridColumn: 1 + (index - 20), gridRow: 1 };
   } else if (index >= 31 && index <= 39) {
-    // Right edge (11,2 down to 11,10)
     return { gridColumn: 11, gridRow: 1 + (index - 30) };
   }
   return {};
@@ -53,7 +93,7 @@ export default function MonopolyBoard() {
     };
   }, []);
 
-  // Smooth Step-by-Step Token Hop Movement (150ms per tile)
+  // Smooth Token Walking Engine
   useEffect(() => {
     if (!gameState?.players) return;
 
@@ -145,7 +185,10 @@ export default function MonopolyBoard() {
     );
   }
 
-  const board = gameState?.board || [];
+  // Fallback to DEFAULT_BOARD if engine getState() omits board array
+  const rawBoard = gameState?.board || gameState?.tiles;
+  const board = Array.isArray(rawBoard) && rawBoard.length > 0 ? rawBoard : DEFAULT_BOARD;
+
   const players = gameState?.players || [];
   const logs = gameState?.log || [];
   const turnPhase = gameState?.turnPhase;
