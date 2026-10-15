@@ -6,6 +6,24 @@ import "./MonopolyBoard.css";
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
 let socket;
 
+// Helper function to map 40 tiles along the outer perimeter of an 11x11 CSS Grid
+const getTileGridStyle = (index) => {
+  if (index >= 0 && index <= 10) {
+    // Bottom edge (Right to Left: START at 11,11 -> Jail at 1,11)
+    return { gridColumn: 11 - index, gridRow: 11 };
+  } else if (index >= 11 && index <= 20) {
+    // Left edge (Bottom to Top: 1,10 -> Free Parking at 1,1)
+    return { gridColumn: 1, gridRow: 11 - (index - 10) };
+  } else if (index >= 21 && index <= 30) {
+    // Top edge (Left to Right: 2,1 -> Go to Jail at 11,1)
+    return { gridColumn: 1 + (index - 20), gridRow: 1 };
+  } else if (index >= 31 && index <= 39) {
+    // Right edge (Top to Bottom: 11,2 -> 11,10)
+    return { gridColumn: 11, gridRow: 1 + (index - 30) };
+  }
+  return {};
+};
+
 export default function MonopolyBoard() {
   const [playerName, setPlayerName] = useState("");
   const [roomCode, setRoomCode] = useState("qb4kw");
@@ -17,17 +35,18 @@ export default function MonopolyBoard() {
   useEffect(() => {
     socket = io(BACKEND_URL);
 
-    // 1. Lobby Update Event
-    socket.on("ROOM_UPDATE", ({ players, started }) => {
-      setLobbyPlayers(players);
+    // 1. Pre-game room lobby updates
+    socket.on("ROOM_UPDATE", ({ players }) => {
+      setLobbyPlayers(players || []);
     });
 
-    // 2. Monopoly Engine Game State Event
+    // 2. Main game engine state updates
     socket.on("GAME_STATE_UPDATE", (updatedState) => {
+      console.log("Game Engine State Received:", updatedState);
       setGameState(updatedState);
     });
 
-    // 3. Error Event Handling
+    // 3. Error handler
     socket.on("ERROR", (errMsg) => {
       console.error("[Engine Error]:", errMsg);
       alert(errMsg);
@@ -38,7 +57,7 @@ export default function MonopolyBoard() {
     };
   }, []);
 
-  // Action Dispatchers matching server.js
+  // Socket event dispatchers
   const handleJoin = (e) => {
     e.preventDefault();
     if (playerName.trim() && roomCode.trim()) {
@@ -79,7 +98,7 @@ export default function MonopolyBoard() {
     socket.emit("ACTION_END_TURN", { roomCode });
   };
 
-  // 1. Pre-Game Join Screen
+  // 1. Join Form Screen
   if (!joined) {
     return (
       <div className="lobby-container">
@@ -105,7 +124,7 @@ export default function MonopolyBoard() {
     );
   }
 
-  // 2. Waiting Room / Pre-Start Lobby
+  // 2. Pre-Start Waiting Room Lobby
   if (!gameState) {
     return (
       <div className="lobby-container">
@@ -122,35 +141,53 @@ export default function MonopolyBoard() {
           <button onClick={handleStartGame}>Start Game</button>
         ) : (
           <p style={{ color: "#a5b4fc", marginTop: "12px" }}>
-            Waiting for connection...
+            Connecting to backend...
           </p>
         )}
       </div>
     );
   }
 
-  const board = gameState?.board || [];
+  // Fallbacks for data properties across different engine versions
+  const board = gameState?.board || gameState?.tiles || [];
+  const logs = gameState?.logs || gameState?.log || gameState?.history || [];
   const players = gameState?.players || [];
-  const currentTurnPlayer = players.find((p) => p.id === gameState?.currentTurnPlayerId) || players[gameState?.currentTurnIndex] || {};
+
+  // Determine current active player
+  const currentTurnPlayer =
+    players.find(
+      (p) =>
+        p.id === gameState?.currentTurnPlayerId ||
+        p.id === gameState?.activePlayerId ||
+        p.id === gameState?.currentTurn
+    ) ||
+    players[gameState?.currentTurnIndex] ||
+    {};
+
   const isMyTurn = currentTurnPlayer.id === socket?.id;
 
-  // Helper to render individual tile with flags and googly-eyed tokens
-  const renderTile = (tileIndex) => {
-    const tile = board[tileIndex];
-    if (!tile) return <div key={tileIndex} className="tile empty" />;
+  // Helper to render tile content with perimeter positioning
+  const renderTile = (tile, tileIndex) => {
+    if (!tile) return <div key={tileIndex} className="tile empty" style={getTileGridStyle(tileIndex)} />;
 
     const playersOnTile = players.filter((p) => p.position === tileIndex);
 
     return (
-      <div key={tileIndex} className={`tile ${tile.type || ""}`}>
-        {tile.colorGroup && (
+      <div
+        key={tileIndex}
+        className={`tile ${tile.type || ""}`}
+        style={getTileGridStyle(tileIndex)}
+      >
+        {/* Group Color Header */}
+        {(tile.colorGroup || tile.color) && (
           <div
             className="tile-color-bar"
-            style={{ backgroundColor: tile.colorGroup }}
+            style={{ backgroundColor: tile.colorGroup || tile.color }}
           />
         )}
 
         <div className="tile-content">
+          {/* Country Flag */}
           {tile.countryCode && (
             <img
               src={`https://flagcdn.com/w40/${tile.countryCode.toLowerCase()}.png`}
@@ -187,11 +224,11 @@ export default function MonopolyBoard() {
     );
   };
 
-  // 3. Main Live Game Board
+  // 3. Main Board Interface
   return (
     <div className="game-wrapper">
       <div className="board-container">
-        {/* Center Board Information & Actions */}
+        {/* Center Control Panel */}
         <div className="board-center">
           <h1>Monopoly</h1>
 
@@ -205,7 +242,7 @@ export default function MonopolyBoard() {
             Current Turn: <strong>{currentTurnPlayer.name || "N/A"}</strong>
           </div>
 
-          {/* Player Actions */}
+          {/* Turn Actions */}
           {isMyTurn && (
             <div className="action-buttons">
               {!gameState.hasRolled && (
@@ -225,10 +262,10 @@ export default function MonopolyBoard() {
             </div>
           )}
 
-          {/* Auction UI Controls */}
+          {/* Auction Controls */}
           {gameState?.inAuction && (
             <div className="auction-controls" style={{ marginTop: "12px" }}>
-              <p>Auctioning Property! Current Bid: ${gameState.currentBid || 0}</p>
+              <p>Auction in Progress! Highest Bid: ${gameState.currentBid || 0}</p>
               <form onSubmit={handlePlaceBid} style={{ display: "flex", gap: "8px", marginTop: "6px" }}>
                 <input
                   type="number"
@@ -246,11 +283,11 @@ export default function MonopolyBoard() {
           )}
         </div>
 
-        {/* Board Tile Grid */}
-        {board.map((_, index) => renderTile(index))}
+        {/* Outer Perimeter Tiles */}
+        {board.map((tile, index) => renderTile(tile, index))}
       </div>
 
-      {/* Right Sidebar (Players & Game Log) */}
+      {/* Sidebar */}
       <div className="sidebar">
         <div className="player-list">
           <h3>Players</h3>
@@ -265,9 +302,9 @@ export default function MonopolyBoard() {
         <div className="game-log">
           <h3>Game Log</h3>
           <div className="log-messages">
-            {(gameState?.logs || []).slice().reverse().map((log, i) => (
+            {(logs || []).slice().reverse().map((log, i) => (
               <div key={i} className="log-entry">
-                {log}
+                {typeof log === "string" ? log : log.text || JSON.stringify(log)}
               </div>
             ))}
           </div>
