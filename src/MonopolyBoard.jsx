@@ -293,4 +293,22 @@ export default function MonopolyBoard() {
           {players.map((p) => (
             <div key={p.id} className="player-card">
               <span className="player-dot" style={{ backgroundColor: p.color || "#6366f1" }} />
-              <strong>{p.name}</strong>
+              <strong>{p.name}</strong> : ${p.money}
+            </div>
+          ))}
+        </div>
+
+        <div className="game-log">
+          <h3>Game Log</h3>
+          <div className="log-messages">
+            {(logs || []).map((log, i) => (
+              <div key={i} className="log-entry">
+                {typeof log === "string" ? log : JSON.stringify(log)}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
