@@ -5,45 +5,51 @@ import "./MonopolyBoard.css";
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
 let socket;
 
-// Fallback board array if engine getState() omits static board data
+// Complete 40-Tile Board Fallback matching MonopolyEngine (% 40) logic
 const DEFAULT_BOARD = [
-  { name: "START", type: "corner" },
-  { name: "Salvador", price: 60, colorGroup: "#8b5cf6", countryCode: "BR" },
-  { name: "Treasure", type: "chest" },
-  { name: "Rio", price: 60, colorGroup: "#8b5cf6", countryCode: "BR" },
-  { name: "Earnings Tax", price: 75, type: "tax" },
-  { name: "TLV Airport", price: 200, type: "airport" },
-  { name: "Tel Aviv", price: 100, colorGroup: "#3b82f6", countryCode: "IL" },
-  { name: "Haifa", price: 100, colorGroup: "#3b82f6", countryCode: "IL" },
-  { name: "Surprise", type: "chance" },
-  { name: "Jerusalem", price: 120, colorGroup: "#3b82f6", countryCode: "IL" },
-  { name: "Jail / Visiting", type: "corner" },
-  { name: "Venice", price: 130, colorGroup: "#ec4899", countryCode: "IT" },
-  { name: "Power Company", price: 150, type: "utility" },
-  { name: "Milan", price: 140, colorGroup: "#ec4899", countryCode: "IT" },
-  { name: "Rome", price: 160, colorGroup: "#ec4899", countryCode: "IT" },
-  { name: "MUC Airport", price: 200, type: "airport" },
-  { name: "Frankfurt", price: 180, colorGroup: "#f59e0b", countryCode: "DE" },
-  { name: "Treasure", type: "chest" },
-  { name: "Munich", price: 190, colorGroup: "#f59e0b", countryCode: "DE" },
-  { name: "Berlin", price: 200, colorGroup: "#f59e0b", countryCode: "DE" },
-  { name: "Vacation", type: "corner" },
-  { name: "CDG Airport", price: 200, type: "airport" },
-  { name: "Surprise", type: "chance" },
-  { name: "Water Company", price: 150, type: "utility" },
-  { name: "Go To Jail", type: "corner" },
-  { name: "Liverpool", price: 290, colorGroup: "#10b981", countryCode: "GB" },
-  { name: "Manchester", price: 300, colorGroup: "#10b981", countryCode: "GB" },
-  { name: "Treasure", type: "chest" },
-  { name: "London", price: 320, colorGroup: "#10b981", countryCode: "GB" },
-  { name: "JFK Airport", price: 200, type: "airport" },
-  { name: "Surprise", type: "chance" },
-  { name: "San Francisco", price: 360, colorGroup: "#ef4444", countryCode: "US" },
-  { name: "Premium Tax", price: 100, type: "tax" },
-  { name: "New York", price: 400, colorGroup: "#ef4444", countryCode: "US" }
+  { id: 0, name: "START", type: "CORNER" },
+  { id: 1, name: "Salvador", price: 60, colorGroup: "#8b5cf6", countryCode: "BR", type: "PROPERTY" },
+  { id: 2, name: "Community Chest", type: "CHEST" },
+  { id: 3, name: "Rio", price: 60, colorGroup: "#8b5cf6", countryCode: "BR", type: "PROPERTY" },
+  { id: 4, name: "Income Tax", price: 200, type: "TAX" },
+  { id: 5, name: "Reading Railroad", price: 200, type: "RAILROAD" },
+  { id: 6, name: "Tel Aviv", price: 100, colorGroup: "#3b82f6", countryCode: "IL", type: "PROPERTY" },
+  { id: 7, name: "Chance", type: "CHANCE" },
+  { id: 8, name: "Haifa", price: 100, colorGroup: "#3b82f6", countryCode: "IL", type: "PROPERTY" },
+  { id: 9, name: "Jerusalem", price: 120, colorGroup: "#3b82f6", countryCode: "IL", type: "PROPERTY" },
+  { id: 10, name: "In Prison / Visiting", type: "CORNER" },
+  { id: 11, name: "Venice", price: 140, colorGroup: "#ec4899", countryCode: "IT", type: "PROPERTY" },
+  { id: 12, name: "Electric Company", price: 150, type: "UTILITY" },
+  { id: 13, name: "Milan", price: 140, colorGroup: "#ec4899", countryCode: "IT", type: "PROPERTY" },
+  { id: 14, name: "Rome", price: 160, colorGroup: "#ec4899", countryCode: "IT", type: "PROPERTY" },
+  { id: 15, name: "Pennsylvania Railroad", price: 200, type: "RAILROAD" },
+  { id: 16, name: "Frankfurt", price: 180, colorGroup: "#f59e0b", countryCode: "DE", type: "PROPERTY" },
+  { id: 17, name: "Community Chest", type: "CHEST" },
+  { id: 18, name: "Munich", price: 180, colorGroup: "#f59e0b", countryCode: "DE", type: "PROPERTY" },
+  { id: 19, name: "Berlin", price: 200, colorGroup: "#f59e0b", countryCode: "DE", type: "PROPERTY" },
+  { id: 20, name: "Free Parking", type: "CORNER" },
+  { id: 21, name: "CDG Airport", price: 220, colorGroup: "#10b981", countryCode: "FR", type: "PROPERTY" },
+  { id: 22, name: "Chance", type: "CHANCE" },
+  { id: 23, name: "Nice", price: 220, colorGroup: "#10b981", countryCode: "FR", type: "PROPERTY" },
+  { id: 24, name: "Lyon", price: 240, colorGroup: "#10b981", countryCode: "FR", type: "PROPERTY" },
+  { id: 25, name: "B&O Railroad", price: 200, type: "RAILROAD" },
+  { id: 26, name: "Liverpool", price: 260, colorGroup: "#e11d48", countryCode: "GB", type: "PROPERTY" },
+  { id: 27, name: "Manchester", price: 260, colorGroup: "#e11d48", countryCode: "GB", type: "PROPERTY" },
+  { id: 28, name: "Water Works", price: 150, type: "UTILITY" },
+  { id: 29, name: "London", price: 280, colorGroup: "#e11d48", countryCode: "GB", type: "PROPERTY" },
+  { id: 30, name: "Go To Prison", type: "CORNER" },
+  { id: 31, name: "San Francisco", price: 300, colorGroup: "#ef4444", countryCode: "US", type: "PROPERTY" },
+  { id: 32, name: "Seattle", price: 300, colorGroup: "#ef4444", countryCode: "US", type: "PROPERTY" },
+  { id: 33, name: "Community Chest", type: "CHEST" },
+  { id: 34, name: "New York", price: 320, colorGroup: "#ef4444", countryCode: "US", type: "PROPERTY" },
+  { id: 35, name: "Short Line Railroad", price: 200, type: "RAILROAD" },
+  { id: 36, name: "Chance", type: "CHANCE" },
+  { id: 37, name: "Tokyo", price: 350, colorGroup: "#6366f1", countryCode: "JP", type: "PROPERTY" },
+  { id: 38, name: "Luxury Tax", price: 100, type: "TAX" },
+  { id: 39, name: "Osaka", price: 400, colorGroup: "#6366f1", countryCode: "JP", type: "PROPERTY" }
 ];
 
-// Maps perimeter tiles around an 11x11 grid
+// Maps 40 tiles around the perimeter of an 11x11 Grid
 const getTileGridStyle = (index) => {
   if (index >= 0 && index <= 10) {
     return { gridColumn: 11 - index, gridRow: 11 };
@@ -102,7 +108,7 @@ export default function MonopolyBoard() {
   const handlePlaceBid = (e) => {
     e.preventDefault();
     if (bidAmount) {
-      socket.emit("ACTION_BID", { roomCode, amount: bidAmount });
+      socket.emit("ACTION_BID", { roomCode, amount: Number(bidAmount) });
       setBidAmount("");
     }
   };
@@ -110,6 +116,7 @@ export default function MonopolyBoard() {
   const handlePassBid = () => socket.emit("ACTION_PASS_BID", { roomCode });
   const handleEndTurn = () => socket.emit("ACTION_END_TURN", { roomCode });
 
+  // 1. Join Screen
   if (!joined) {
     return (
       <div className="lobby-container">
@@ -135,6 +142,7 @@ export default function MonopolyBoard() {
     );
   }
 
+  // 2. Pre-Game Lobby
   if (!gameState) {
     return (
       <div className="lobby-container">
@@ -152,36 +160,16 @@ export default function MonopolyBoard() {
     );
   }
 
-  // Ensure board array is populated
-  const rawBoard = gameState?.board || gameState?.tiles;
-  const board = Array.isArray(rawBoard) && rawBoard.length > 0 ? rawBoard : DEFAULT_BOARD;
-
+  const board = DEFAULT_BOARD;
   const players = gameState?.players || [];
-  const logs = gameState?.logs || gameState?.log || gameState?.history || [];
+  const logs = gameState?.log || [];
+  const turnPhase = gameState?.turnPhase;
 
-  // Resolve current active player across engine formats
-  const getCurrentTurnPlayer = () => {
-    if (!players.length) return {};
-    if (typeof gameState?.currentTurn === "object" && gameState?.currentTurn?.name) {
-      return gameState.currentTurn;
-    }
-    const turnId = gameState?.currentTurnPlayerId || gameState?.activePlayerId || gameState?.currentTurn;
-    const foundById = players.find((p) => p.id === turnId || p.socketId === turnId);
-    if (foundById) return foundById;
+  // Active player resolution
+  const currentTurnPlayer = players[gameState?.turnIndex] || players[0] || {};
+  const isMyTurn = currentTurnPlayer.id === socket?.id;
 
-    const turnIdx =
-      typeof gameState?.currentTurnIndex === "number"
-        ? gameState.currentTurnIndex
-        : typeof gameState?.currentTurn === "number"
-        ? gameState.currentTurn
-        : 0;
-
-    return players[turnIdx] || players[0] || {};
-  };
-
-  const currentTurnPlayer = getCurrentTurnPlayer();
-  const isMyTurn = currentTurnPlayer.id === socket?.id || currentTurnPlayer.name === playerName;
-
+  // Render individual tiles
   const renderTile = (tile, tileIndex) => {
     const playersOnTile = players.filter((p) => p.position === tileIndex);
 
@@ -191,10 +179,10 @@ export default function MonopolyBoard() {
         className={`tile ${tile?.type || ""}`}
         style={getTileGridStyle(tileIndex)}
       >
-        {(tile?.colorGroup || tile?.color) && (
+        {tile?.colorGroup && (
           <div
             className="tile-color-bar"
-            style={{ backgroundColor: tile.colorGroup || tile.color }}
+            style={{ backgroundColor: tile.colorGroup }}
           />
         )}
 
@@ -207,13 +195,14 @@ export default function MonopolyBoard() {
             />
           )}
 
-          <div className="tile-name">{tile?.name || `Tile ${tileIndex}`}</div>
+          <div className="tile-name">{tile?.name}</div>
           {tile?.price && <div className="tile-price">${tile.price}</div>}
 
+          {/* Player Character Tokens */}
           <div className="player-tokens-container">
             {playersOnTile.map((player) => (
               <div
-                key={player.id || player.name}
+                key={player.id}
                 className="player-character-token"
                 style={{ backgroundColor: player.color || "#6366f1" }}
                 title={player.name}
@@ -234,15 +223,17 @@ export default function MonopolyBoard() {
     );
   };
 
+  // 3. Live Game Board
   return (
     <div className="game-wrapper">
       <div className="board-container">
+        {/* Center Control Panel */}
         <div className="board-center">
           <h1>Monopoly</h1>
 
-          {gameState?.lastRoll && (
+          {gameState?.currentDice && (
             <div className="dice-display">
-              🎲 {gameState.lastRoll[0]} : {gameState.lastRoll[1]} 🎲
+              🎲 {gameState.currentDice[0]} : {gameState.currentDice[1]} 🎲
             </div>
           )}
 
@@ -250,26 +241,30 @@ export default function MonopolyBoard() {
             Current Turn: <strong>{currentTurnPlayer.name || "N/A"}</strong>
           </div>
 
-          <div className="action-buttons">
-            {isMyTurn && !gameState?.hasRolled && (
-              <button onClick={handleRollDice}>Roll Dice</button>
-            )}
-            {isMyTurn && gameState?.canBuy && (
-              <>
-                <button onClick={handleBuyProperty}>Buy Property</button>
-                <button onClick={handleDeclineProperty} style={{ backgroundColor: "#ef4444" }}>
-                  Auction Property
-                </button>
-              </>
-            )}
-            {isMyTurn && gameState?.hasRolled && !gameState?.canBuy && (
-              <button onClick={handleEndTurn}>End Turn</button>
-            )}
-          </div>
+          {/* Action Buttons mapped directly to turnPhase */}
+          {isMyTurn && (
+            <div className="action-buttons">
+              {turnPhase === "AWAITING_ROLL" && (
+                <button onClick={handleRollDice}>Roll Dice</button>
+              )}
+              {turnPhase === "ACTION_REQUIRED" && (
+                <>
+                  <button onClick={handleBuyProperty}>Buy Property</button>
+                  <button onClick={handleDeclineProperty} style={{ backgroundColor: "#ef4444" }}>
+                    Auction Property
+                  </button>
+                </>
+              )}
+              {turnPhase === "AWAITING_END_TURN" && (
+                <button onClick={handleEndTurn}>End Turn</button>
+              )}
+            </div>
+          )}
 
-          {gameState?.inAuction && (
+          {/* Auction UI */}
+          {turnPhase === "AUCTION" && gameState?.auction && (
             <div className="auction-controls" style={{ marginTop: "12px" }}>
-              <p>Auction in Progress! Highest Bid: ${gameState.currentBid || 0}</p>
+              <p>Auction in Progress! Highest Bid: ${gameState.auction.currentBid || 0}</p>
               <form onSubmit={handlePlaceBid} style={{ display: "flex", gap: "8px", marginTop: "6px" }}>
                 <input
                   type="number"
@@ -287,31 +282,15 @@ export default function MonopolyBoard() {
           )}
         </div>
 
+        {/* 40 Perimeter Tiles */}
         {board.map((tile, index) => renderTile(tile, index))}
       </div>
 
+      {/* Right Sidebar */}
       <div className="sidebar">
         <div className="player-list">
           <h3>Players</h3>
           {players.map((p) => (
-            <div key={p.id || p.name} className="player-card">
+            <div key={p.id} className="player-card">
               <span className="player-dot" style={{ backgroundColor: p.color || "#6366f1" }} />
-              <strong>{p.name}</strong> : ${p.money}
-            </div>
-          ))}
-        </div>
-
-        <div className="game-log">
-          <h3>Game Log</h3>
-          <div className="log-messages">
-            {(logs || []).slice().reverse().map((log, i) => (
-              <div key={i} className="log-entry">
-                {typeof log === "string" ? log : log.text || JSON.stringify(log)}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+              <strong>{p.name}</strong>
