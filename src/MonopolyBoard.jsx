@@ -49,7 +49,6 @@ const DEFAULT_BOARD = [
   { id: 39, name: "Tokyo", price: 400, colorGroup: "#6366f1", countryCode: "JP", type: "PROPERTY", houseCost: 200 }
 ];
 
-// Returns visual icons for special board tiles
 const getTileIcon = (tile) => {
   if (!tile) return null;
   const name = tile.name?.toLowerCase() || "";
@@ -69,7 +68,6 @@ const getTileIcon = (tile) => {
   return null;
 };
 
-// Symmetrical 40-Tile Mapping on an 11x11 Grid
 const getTileGridStyle = (index) => {
   if (index >= 0 && index <= 10) {
     return { gridColumn: 11 - index, gridRow: 11 };
@@ -232,6 +230,25 @@ export default function MonopolyBoard() {
   const currentTurnPlayer = players[gameState?.turnIndex] || players[0] || {};
   const isMyTurn = currentTurnPlayer.id === socket?.id;
 
+  // Helper function to verify 100% ownership of a country
+  const hasFullCountry = (countryCode) => {
+    if (!countryCode) return false;
+    const countryTiles = board.filter((t) => t.countryCode === countryCode);
+    return (
+      countryTiles.length > 0 &&
+      countryTiles.every((t) => properties[t.id]?.ownerId === socket?.id)
+    );
+  };
+
+  // Only include properties where player owns EVERY city in that country
+  const buildableProperties = board.filter(
+    (t) =>
+      t.type === "PROPERTY" &&
+      t.countryCode &&
+      properties[t.id]?.ownerId === socket?.id &&
+      hasFullCountry(t.countryCode)
+  );
+
   const renderTile = (tile, tileIndex) => {
     const icon = getTileIcon(tile);
     const propData = properties[tile.id];
@@ -291,8 +308,6 @@ export default function MonopolyBoard() {
     );
   };
 
-  const myProperties = board.filter((t) => properties[t.id]?.ownerId === socket?.id);
-
   return (
     <div className="game-wrapper">
       <div className="board-container" style={{ position: "relative" }}>
@@ -335,7 +350,8 @@ export default function MonopolyBoard() {
 
               {(turnPhase === "AWAITING_END_TURN" || turnPhase === "AWAITING_ROLL") && (
                 <div style={{ display: "flex", gap: "8px", marginTop: "6px" }}>
-                  {myProperties.length > 0 && (
+                  {/* Build button ONLY appears if player owns full country */}
+                  {buildableProperties.length > 0 && (
                     <button onClick={() => setShowBuildMenu(!showBuildMenu)} style={{ backgroundColor: "#8b5cf6" }}>
                       {showBuildMenu ? "Close Build Menu" : "Build Houses 🏗️"}
                     </button>
@@ -348,11 +364,12 @@ export default function MonopolyBoard() {
             </div>
           )}
 
-          {showBuildMenu && isMyTurn && (
+          {/* House/Hotel Build Menu Overlay */}
+          {showBuildMenu && isMyTurn && buildableProperties.length > 0 && (
             <div className="build-menu">
-              <h4>Your Owned Properties:</h4>
+              <h4>Fully Owned Countries:</h4>
               <div className="build-list">
-                {myProperties.map((t) => (
+                {buildableProperties.map((t) => (
                   <div key={t.id} className="build-item">
                     <span>{t.name} (Cost: ${t.houseCost || 100})</span>
                     <button onClick={() => handleBuildHouse(t.id)}>+ House/Hotel</button>
