@@ -1,5 +1,7 @@
+// MonopolyBoard.jsx
 import React, { useState, useEffect } from "react";
 import io from "socket.io-client";
+import PropertyCardModal from "./PropertyCardModal";
 import "./MonopolyBoard.css";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
@@ -46,4 +48,112 @@ const DEFAULT_BOARD = [
   { id: 36, name: "Chance", type: "CHANCE" },
   { id: 37, name: "Kyoto", price: 350, colorGroup: "#6366f1", countryCode: "JP", type: "PROPERTY", houseCost: 200, rent: [35, 175, 500, 1100, 1300, 1500] },
   { id: 38, name: "Luxury Tax", price: 100, type: "TAX" },
-  { id: 39, name: "Tokyo", price: 400, colorGroup: "#6366f1", countryCode: "JP", type: "PROPERTY", houseCost:
+  { id: 39, name: "Tokyo", price: 400, colorGroup: "#6366f1", countryCode: "JP", type: "PROPERTY", houseCost: 200, rent: [50, 200, 600, 1400, 1700, 2000] }
+];
+
+export default function MonopolyBoard() {
+  const [board, setBoard] = useState(DEFAULT_BOARD);
+  const [players, setPlayers] = useState([]);
+  const [selectedProperty, setSelectedProperty] = useState(null);
+  const [currentPlayer, setCurrentPlayer] = useState({ id: 1, name: "Player 1", money: 1500 });
+  const [gameState, setGameState] = useState({ isCurrentTurn: true });
+
+  useEffect(() => {
+    socket = io(BACKEND_URL);
+
+    socket.on("gameState", (data) => {
+      if (data.board) setBoard(data.board);
+      if (data.players) setPlayers(data.players);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+
+  const handleTileClick = (tile) => {
+    if (tile.type === "PROPERTY") {
+      setSelectedProperty(tile);
+    }
+  };
+
+  const handleBuild = (tileId) => {
+    if (socket) {
+      socket.emit("buildHouse", { tileId });
+    }
+  };
+
+  const handleMortgage = (tileId) => {
+    if (socket) {
+      socket.emit("mortgageProperty", { tileId });
+    }
+  };
+
+  return (
+    <div className="monopoly-board-container">
+      <div className="board">
+        {board.map((tile) => {
+          const playersOnTile = players.filter((p) => p.position === tile.id);
+
+          return (
+            <div
+              key={tile.id}
+              className={`tile tile-${tile.id} tile-type-${tile.type}`}
+              onClick={() => handleTileClick(tile)}
+            >
+              {tile.colorGroup && (
+                <div
+                  className="tile-header"
+                  style={{ backgroundColor: tile.colorGroup }}
+                >
+                  {tile.countryCode && <span className="flag">{tile.countryCode}</span>}
+                </div>
+              )}
+
+              <div className="tile-content">
+                <span className="tile-name">{tile.name}</span>
+                {tile.price && <span className="tile-price">${tile.price}</span>}
+              </div>
+
+              {playersOnTile.length > 0 && (
+                <div className="player-tokens">
+                  {playersOnTile.map((p) => (
+                    <div
+                      key={p.id}
+                      className="player-token"
+                      style={{ backgroundColor: p.color || "#3b82f6" }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Property Details Modal */}
+      {selectedProperty && (
+        <PropertyCardModal
+          property={{
+            ...selectedProperty,
+            hotelCost: selectedProperty.houseCost,
+            mortgageValue: selectedProperty.price ? selectedProperty.price / 2 : 0,
+            rent: {
+              base: selectedProperty.rent?.[0] || 0,
+              oneHouse: selectedProperty.rent?.[1] || 0,
+              twoHouses: selectedProperty.rent?.[2] || 0,
+              threeHouses: selectedProperty.rent?.[3] || 0,
+              fourHouses: selectedProperty.rent?.[4] || 0,
+              hotel: selectedProperty.rent?.[5] || 0,
+            }
+          }}
+          onClose={() => setSelectedProperty(null)}
+          currentPlayer={currentPlayer}
+          gameState={gameState}
+          onBuild={handleBuild}
+          onMortgage={handleMortgage}
+        />
+      )}
+    </div>
+  );
+}
