@@ -5,6 +5,7 @@ import "./MonopolyBoard.css";
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
 let socket;
 
+// Complete 40-Tile Board Fallback (Tile 20 = "Vacation")
 const DEFAULT_BOARD = [
   { id: 0, name: "START", type: "CORNER" },
   { id: 1, name: "Salvador", price: 60, colorGroup: "#8b5cf6", countryCode: "BR", type: "PROPERTY", houseCost: 50 },
@@ -48,6 +49,7 @@ const DEFAULT_BOARD = [
   { id: 39, name: "Tokyo", price: 400, colorGroup: "#6366f1", countryCode: "JP", type: "PROPERTY", houseCost: 200 }
 ];
 
+// Returns visual icons for special board tiles
 const getTileIcon = (tile) => {
   if (!tile) return null;
   const name = tile.name?.toLowerCase() || "";
@@ -67,6 +69,7 @@ const getTileIcon = (tile) => {
   return null;
 };
 
+// Symmetrical 40-Tile Mapping on an 11x11 Grid
 const getTileGridStyle = (index) => {
   if (index >= 0 && index <= 10) {
     return { gridColumn: 11 - index, gridRow: 11 };
@@ -111,6 +114,7 @@ export default function MonopolyBoard() {
     };
   }, []);
 
+  // Step-by-Step Walking Engine
   useEffect(() => {
     if (!gameState?.players) return;
 
@@ -270,7 +274,7 @@ export default function MonopolyBoard() {
             />
           )}
 
-          {/* Houses & Hotels Display */}
+          {/* Houses & Hotels Visuals */}
           {houses > 0 && (
             <div className="houses-container">
               {houses === 5 ? (
@@ -287,7 +291,6 @@ export default function MonopolyBoard() {
     );
   };
 
-  // Find properties owned by the player that can be upgraded
   const myProperties = board.filter((t) => properties[t.id]?.ownerId === socket?.id);
 
   return (
@@ -345,7 +348,6 @@ export default function MonopolyBoard() {
             </div>
           )}
 
-          {/* Build Houses Overlay Menu */}
           {showBuildMenu && isMyTurn && (
             <div className="build-menu">
               <h4>Your Owned Properties:</h4>
