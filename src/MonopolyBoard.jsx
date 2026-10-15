@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import io from "socket.io-client";
 import "./MonopolyBoard.css";
 
-// Connect to cloud backend URL or fallback to localhost
+// Connect to cloud backend URL or fallback to local development
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
 let socket;
 
@@ -74,7 +74,19 @@ export default function MonopolyBoard() {
     );
   }
 
-  // 2. Waiting Room Screen before Host starts
+  // 2. Loading State while waiting for Backend Game Data (Prevents Blank Screen)
+  if (joined && !gameState) {
+    return (
+      <div className="lobby-container">
+        <h2>Connecting to Server...</h2>
+        <p style={{ color: "#a5b4fc", marginTop: "12px", textAlign: "center" }}>
+          Waking up backend server. Please wait a few seconds...
+        </p>
+      </div>
+    );
+  }
+
+  // 3. Waiting Room Screen before Host starts
   if (gameState && !gameState.started) {
     return (
       <div className="lobby-container">
@@ -99,7 +111,7 @@ export default function MonopolyBoard() {
   const currentTurnPlayer = players[gameState?.currentTurnIndex] || {};
   const isMyTurn = currentTurnPlayer.id === socket?.id;
 
-  // Helper to render tile content (Flags, Name, Price, and Character Tokens)
+  // Helper to render individual tiles with flags and googly-eyed tokens
   const renderTile = (tileIndex) => {
     const tile = board[tileIndex];
     if (!tile) return <div key={tileIndex} className="tile empty" />;
@@ -108,7 +120,7 @@ export default function MonopolyBoard() {
 
     return (
       <div key={tileIndex} className={`tile ${tile.type || ""}`}>
-        {/* Top Color Header for Properties */}
+        {/* Color Bar for Property Groups */}
         {tile.colorGroup && (
           <div
             className="tile-color-bar"
@@ -126,11 +138,11 @@ export default function MonopolyBoard() {
             />
           )}
 
-          {/* Tile Name & Price */}
+          {/* Tile Title & Price */}
           <div className="tile-name">{tile.name}</div>
           {tile.price && <div className="tile-price">${tile.price}</div>}
 
-          {/* Googly-Eyed Player Character Tokens */}
+          {/* Googly-Eyed Character Player Tokens */}
           <div className="player-tokens-container">
             {playersOnTile.map((player) => (
               <div
@@ -155,7 +167,7 @@ export default function MonopolyBoard() {
     );
   };
 
-  // 3. Main Live Game Board
+  // 4. Main Live Game Board
   return (
     <div className="game-wrapper">
       <div className="board-container">
@@ -173,7 +185,7 @@ export default function MonopolyBoard() {
             Current Turn: <strong>{currentTurnPlayer.name || "N/A"}</strong>
           </div>
 
-          {/* In-Game Action Controls */}
+          {/* Player Actions */}
           {isMyTurn && (
             <div className="action-buttons">
               {!gameState.hasRolled && (
@@ -189,11 +201,11 @@ export default function MonopolyBoard() {
           )}
         </div>
 
-        {/* Board Tiles */}
+        {/* Board Tile Grid */}
         {board.map((_, index) => renderTile(index))}
       </div>
 
-      {/* Right Sidebar (Players & Live Game Log) */}
+      {/* Right Sidebar (Players & Game Log) */}
       <div className="sidebar">
         <div className="player-list">
           <h3>Players</h3>
