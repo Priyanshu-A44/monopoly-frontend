@@ -317,8 +317,31 @@ export default function MonopolyBoard() {
       setIsRolling(false);
     });
 
+    socket.on("ERROR", (msg) => {
+      setIsRolling(false);
+      alert(msg);
+    });
+
     return () => socket.disconnect();
   }, []);
+
+  // Keep the open property card in sync with the latest game state
+  useEffect(() => {
+    if (!modalProperty || !gameState) return;
+    const propData = gameState.properties?.[modalProperty.id];
+    const owner = gameState.players?.find((p) => p.id === propData?.ownerId);
+    setModalProperty((prev) =>
+      prev && {
+        ...prev,
+        ownerId: propData?.ownerId,
+        ownerName: owner?.name,
+        ownerColor: owner?.color,
+        houses: propData?.houses || 0,
+        isMortgaged: propData?.isMortgaged || false
+      }
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState]);
 
   const handleJoin = (e) => {
     e.preventDefault();
@@ -346,6 +369,7 @@ export default function MonopolyBoard() {
 
   const handleDeclineProperty = () => socket.emit("ACTION_DECLINE", { roomCode });
   const handleEndTurn = () => socket.emit("ACTION_END_TURN", { roomCode });
+  const handlePayBail = () => socket.emit("ACTION_PAY_BAIL", { roomCode });
 
   const handlePlaceBid = (e) => {
     e.preventDefault();
@@ -514,7 +538,7 @@ export default function MonopolyBoard() {
                         ) : (
                           <div
                             className={`t k-${tileTypeLower} ${owner ? "own" : ""}`}
-                            style={{ "--g": owner ? owner.color : groupColor }}
+                            style={{ "--g": owner ? owner.color : groupColor, opacity: propData?.isMortgaged ? 0.5 : 1 }}
                           >
                             <div className="band">
                               {owner ? (
@@ -528,6 +552,11 @@ export default function MonopolyBoard() {
                               <div className="art">{getArtForTile(tile)}</div>
                               {tile.countryCode && FLAGS[tile.countryCode] && (
                                 <div className="flag">{FLAGS[tile.countryCode]}</div>
+                              )}
+                              {propData?.houses > 0 && (
+                                <div style={{ fontSize: "10px", textAlign: "center", lineHeight: 1 }}>
+                                  {propData.houses === 5 ? "🏨" : "🏠".repeat(propData.houses)}
+                                </div>
                               )}
                             </div>
                           </div>
@@ -604,9 +633,21 @@ export default function MonopolyBoard() {
                       {isMyTurn && (
                         <div style={{ position: "absolute", bottom: "8%", left: "50%", transform: "translateX(-50%)", zIndex: 50, display: "flex", gap: "8px" }}>
                           {turnPhase === "AWAITING_ROLL" && (
-                            <button className="roll" type="button" onClick={handleRollDice}>
-                              {currentTurnPlayer.inJail ? "Roll Doubles 🎲" : "Roll the dice"}
-                            </button>
+                            <>
+                              <button className="roll" type="button" onClick={handleRollDice}>
+                                {currentTurnPlayer.inJail ? "Roll Doubles 🎲" : "Roll the dice"}
+                              </button>
+                              {currentTurnPlayer.inJail && (
+                                <button
+                                  className="roll"
+                                  type="button"
+                                  style={{ background: "linear-gradient(180deg, #f59e0b, #d97706)" }}
+                                  onClick={handlePayBail}
+                                >
+                                  Pay $50 🔓
+                                </button>
+                              )}
+                            </>
                           )}
 
                           {turnPhase === "ACTION_REQUIRED" && (
@@ -670,7 +711,7 @@ export default function MonopolyBoard() {
                   </div>
 
                   <ol className="log">
-                    {logs.slice(-4).map((l, idx) => (
+                    {logs.slice(0, 4).map((l, idx) => (
                       <li key={idx}>{typeof l === "string" ? l : JSON.stringify(l)}</li>
                     ))}
                   </ol>
