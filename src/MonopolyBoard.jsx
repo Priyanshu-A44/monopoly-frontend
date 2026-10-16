@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import io from "socket.io-client";
+import confetti from "canvas-confetti";
 import PropertyCardModal from "./PropertyCardModal";
 import "./MonopolyBoard.css";
 import "./PropertyCardModal.css";
@@ -7,7 +8,44 @@ import "./PropertyCardModal.css";
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
 let socket;
 
-// Complete 40-Tile Board Fallback
+const playSound = (type) => {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    if (type === "roll") {
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(120, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.15);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.15);
+    } else if (type === "buy") {
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+      osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.25);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.25);
+    } else if (type === "build") {
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(300, ctx.currentTime);
+      osc.frequency.setValueAtTime(600, ctx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.2);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.2);
+    }
+  } catch (e) {
+    console.log("Audio Context Error", e);
+  }
+};
+
 const DEFAULT_BOARD = [
   { id: 0, name: "START", type: "CORNER" },
   { id: 1, name: "Salvador", price: 60, colorGroup: "#8b5cf6", countryCode: "BR", type: "PROPERTY", houseCost: 50, rent: [2, 10, 30, 90, 160, 250] },
@@ -70,7 +108,6 @@ const getTileIcon = (tile) => {
   return null;
 };
 
-// Maps 0-39 tile indices around an 11x11 grid perimeter
 const getTileGridStyle = (index) => {
   if (index >= 0 && index <= 10) return { gridColumn: 11 - index, gridRow: 11 };
   if (index >= 11 && index <= 20) return { gridColumn: 1, gridRow: 11 - (index - 10) };
@@ -88,29 +125,31 @@ export default function MonopolyBoard() {
   const [displayPositions, setDisplayPositions] = useState({});
   const [bidAmount, setBidAmount] = useState("");
   const [selectedProperty, setSelectedProperty] = useState(null);
+  const [floatingEmotes, setFloatingEmotes] = useState([]);
+  const [isRolling, setIsRolling] = useState(false);
 
   useEffect(() => {
     socket = io(BACKEND_URL);
 
-    socket.on("ROOM_UPDATE", ({ players }) => {
-      setLobbyPlayers(players || []);
-    });
-
+    socket.on("ROOM_UPDATE", ({ players }) => setLobbyPlayers(players || []));
     socket.on("GAME_STATE_UPDATE", (updatedState) => {
       setGameState(updatedState);
+      setIsRolling(false);
     });
 
-    socket.on("ERROR", (errMsg) => {
-      console.error("[Engine Error]:", errMsg);
-      alert(errMsg);
+    socket.on("RECEIVE_EMOTE", ({ playerId, emote }) => {
+      const id = Date.now() + Math.random();
+      setFloatingEmotes((prev) => [...prev, { id, playerId, emote }]);
+      setTimeout(() => {
+        setFloatingEmotes((prev) => prev.filter((e) => e.id !== id));
+      }, 2000);
     });
 
-    return () => {
-      socket.disconnect();
-    };
+    socket.on("ERROR", (errMsg) => alert(errMsg));
+
+    return () => socket.disconnect();
   }, []);
 
-  // Smooth Token Walking Engine
   useEffect(() => {
     if (!gameState?.players) return;
 
@@ -143,7 +182,7 @@ export default function MonopolyBoard() {
 
         return hasMoved ? nextPositions : prev;
       });
-    }, 150);
+    }, 140);
 
     return () => clearInterval(timer);
   }, [gameState]);
@@ -157,12 +196,26 @@ export default function MonopolyBoard() {
   };
 
   const handleStartGame = () => socket.emit("START_GAME", { roomCode });
-  const handleRollDice = () => socket.emit("ACTION_ROLL", { roomCode });
+
+  const handleRollDice = () => {
+    setIsRolling(true);
+    playSound("roll");
+    socket.emit("ACTION_ROLL", { roomCode });
+  };
+
   const handlePayBail = () => socket.emit("ACTION_PAY_BAIL", { roomCode });
-  const handleBuyProperty = () => socket.emit("ACTION_BUY", { roomCode });
+
+  const handleBuyProperty = () => {
+    playSound("buy");
+    confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
+    socket.emit("ACTION_BUY", { roomCode });
+  };
+
   const handleDeclineProperty = () => socket.emit("ACTION_DECLINE", { roomCode });
 
   const handleBuildHouse = (tileId) => {
+    playSound("build");
+    confetti({ particleCount: 80, spread: 80, origin: { y: 0.6 } });
     socket.emit("ACTION_BUILD_HOUSE", { roomCode, tileId });
   };
 
@@ -173,6 +226,10 @@ export default function MonopolyBoard() {
     } else {
       socket.emit("ACTION_MORTGAGE", { roomCode, tileId });
     }
+  };
+
+  const sendEmote = (emote) => {
+    socket.emit("SEND_EMOTE", { roomCode, emote });
   };
 
   const handlePlaceBid = (e) => {
@@ -297,7 +354,7 @@ export default function MonopolyBoard() {
 
           {owner && (
             <div
-              className="owner-badge"
+              className="owner-badge glow-owner"
               style={{ backgroundColor: owner.color || "#6366f1" }}
               title={`Owned by ${owner.name}`}
             />
@@ -328,7 +385,7 @@ export default function MonopolyBoard() {
           <h1>Monopoly</h1>
 
           {gameState?.currentDice && (
-            <div className="dice-display">
+            <div className={`dice-display ${isRolling ? "dice-shake" : ""}`}>
               🎲 {gameState.currentDice[0]} : {gameState.currentDice[1]} 🎲
             </div>
           )}
@@ -337,12 +394,20 @@ export default function MonopolyBoard() {
             Current Turn: <strong>{currentTurnPlayer.name || "N/A"}</strong>
           </div>
 
+          <div className="emote-bar">
+            {["😎", "💸", "🤑", "😭", "💩"].map((emo) => (
+              <button key={emo} onClick={() => sendEmote(emo)}>
+                {emo}
+              </button>
+            ))}
+          </div>
+
           {isMyTurn && (
-            <div className="action-buttons" style={{ flexDirection: "column", alignItems: "center" }}>
+            <div className="action-buttons" style={{ flexDirection: "column", alignItems: "center", marginTop: "12px" }}>
               {turnPhase === "AWAITING_ROLL" && (
                 <div style={{ display: "flex", gap: "8px" }}>
                   <button onClick={handleRollDice}>
-                    {currentTurnPlayer.inJail ? "Roll for Doubles 🎲" : "Roll Dice"}
+                    {currentTurnPlayer.inJail ? "Roll for Doubles 🎲" : "Roll Dice 🎲"}
                   </button>
                   {currentTurnPlayer.inJail && (
                     <button onClick={handlePayBail} style={{ backgroundColor: "#f59e0b" }}>
@@ -354,15 +419,15 @@ export default function MonopolyBoard() {
 
               {turnPhase === "ACTION_REQUIRED" && (
                 <div style={{ display: "flex", gap: "8px" }}>
-                  <button onClick={handleBuyProperty}>Buy Property</button>
+                  <button onClick={handleBuyProperty}>Buy Property 🏠</button>
                   <button onClick={handleDeclineProperty} style={{ backgroundColor: "#ef4444" }}>
-                    Auction Property
+                    Auction Property 🔨
                   </button>
                 </div>
               )}
 
               {turnPhase === "AWAITING_END_TURN" && (
-                <button onClick={handleEndTurn}>End Turn</button>
+                <button onClick={handleEndTurn}>End Turn ⌛</button>
               )}
             </div>
           )}
@@ -387,10 +452,8 @@ export default function MonopolyBoard() {
           )}
         </div>
 
-        {/* 1. Board Grid Tiles */}
         {board.map((tile, index) => renderTile(tile, index))}
 
-        {/* 2. Floating Character Tokens */}
         {players.map((player, pIdx) => {
           const pos = displayPositions[player.id] ?? player.position;
           const gridStyle = getTileGridStyle(pos);
@@ -403,6 +466,8 @@ export default function MonopolyBoard() {
           const offsetX = (pIdx % 2) * 12 - 6;
           const offsetY = Math.floor(pIdx / 2) * 12 - 6;
 
+          const myEmote = floatingEmotes.find((e) => e.playerId === player.id);
+
           return (
             <div
               key={player.id}
@@ -413,7 +478,7 @@ export default function MonopolyBoard() {
                 top: `calc(${rowCenter}% + ${offsetY}px)`,
                 transform: "translate(-50%, -50%)",
                 backgroundColor: player.color || "#6366f1",
-                transition: "left 0.15s linear, top 0.15s linear",
+                transition: "left 0.14s ease-out, top 0.14s ease-out",
                 zIndex: 30,
                 pointerEvents: "none"
               }}
@@ -423,11 +488,12 @@ export default function MonopolyBoard() {
                 <div className="eye"><div className="pupil" /></div>
                 <div className="eye"><div className="pupil" /></div>
               </div>
+
+              {myEmote && <div className="floating-emote-bubble">{myEmote.emote}</div>}
             </div>
           );
         })}
 
-        {/* 3. Modular Property Card Modal Popup */}
         {selectedProperty && (
           <PropertyCardModal
             property={selectedProperty}
@@ -440,13 +506,12 @@ export default function MonopolyBoard() {
         )}
       </div>
 
-      {/* 4. Game Sidebar */}
       <div className="sidebar">
         <div className="player-list">
           <h3>Players</h3>
           {players.map((p) => (
             <div key={p.id} className="player-card">
-              <span className="player-dot" style={{ backgroundColor: p.color || "#6366f1" }} />
+              <span className="player-dot glow-owner" style={{ backgroundColor: p.color || "#6366f1" }} />
               <strong>{p.name}</strong> : ${p.money} {p.inJail ? "🔒" : ""}
             </div>
           ))}
