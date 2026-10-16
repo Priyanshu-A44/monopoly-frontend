@@ -282,6 +282,19 @@ const R = {
   4: [90, 0]
 };
 
+const getArtForTile = (tile) => {
+  const name = tile.name?.toLowerCase() || "";
+  const type = tile.type?.toLowerCase() || "";
+
+  if (type === "railroad" || name.includes("airport")) return ART.airport;
+  if (type === "utility" || name.includes("water")) return ART.water;
+  if (name.includes("power") || name.includes("electric")) return ART.power;
+  if (type === "tax" || name.includes("tax")) return ART.tax;
+  if (type === "chest" || name.includes("treasure")) return ART.treasure;
+  if (type === "chance" || name.includes("surprise")) return ART.surprise;
+  return null;
+};
+
 export default function MonopolyBoard() {
   const [playerName, setPlayerName] = useState("");
   const [roomCode, setRoomCode] = useState("qb4kw");
@@ -335,7 +348,6 @@ export default function MonopolyBoard() {
 
   const handleDeclineProperty = () => socket.emit("ACTION_DECLINE", { roomCode });
   const handleEndTurn = () => socket.emit("ACTION_END_TURN", { roomCode });
-  const handlePayBail = () => socket.emit("ACTION_PAY_BAIL", { roomCode });
 
   const handlePlaceBid = (e) => {
     e.preventDefault();
@@ -467,20 +479,23 @@ export default function MonopolyBoard() {
                     }
 
                     const isSelected = selectedTileIndex === i;
+                    const tileTypeLower = (tile.type || "").toLowerCase();
+                    const nameLower = (tile.name || "").toLowerCase();
+                    const isCorner = i === 0 || i === 10 || i === 20 || i === 30 || tileTypeLower === "corner";
 
                     return (
                       <div
                         key={i}
-                        className={`c ${pos.corner ? "corner-cell" : "s-" + pos.side} ${isSelected ? "sel" : ""}`}
+                        className={`c ${isCorner ? "corner-cell" : "s-" + pos.side} ${isSelected ? "sel" : ""}`}
                         style={{ gridRow: pos.r + 1, gridColumn: pos.c + 1 }}
                         onClick={() => {
                           setSelectedTileIndex(i);
                           openPropertyModal(tile);
                         }}
                       >
-                        {pos.corner ? (
-                          <div className={`t corner ${tile.type}`}>
-                            {tile.type === "start" && (
+                        {isCorner ? (
+                          <div className={`t corner ${tileTypeLower}`}>
+                            {i === 0 && (
                               <>
                                 <div className="cn-title">START</div>
                                 <svg className="chev" viewBox="0 0 40 32">
@@ -489,18 +504,18 @@ export default function MonopolyBoard() {
                                 <div className="cn-sub">Collect $200</div>
                               </>
                             )}
-                            {tile.type === "jail" && (
+                            {i === 10 && (
                               <>
                                 <div className="j-top">Just visiting</div>
                                 <div className="j-label">In Prison</div>
                               </>
                             )}
-                            {tile.type === "vacation" && <div className="cn-title">Vacation</div>}
-                            {tile.type === "gotojail" && <div className="cn-title">Go to prison</div>}
+                            {i === 20 && <div className="cn-title">Vacation</div>}
+                            {i === 30 && <div className="cn-title">Go to prison</div>}
                           </div>
                         ) : (
                           <div
-                            className={`t k-${tile.type || "prop"} ${owner ? "own" : ""}`}
+                            className={`t k-${tileTypeLower} ${owner ? "own" : ""}`}
                             style={{ "--g": owner ? owner.color : groupColor }}
                           >
                             <div className="band">
@@ -512,7 +527,7 @@ export default function MonopolyBoard() {
                             </div>
                             <div className="body">
                               <div className="name">{tile.name}</div>
-                              <div className="art">{ART[tile.u || tile.type]}</div>
+                              <div className="art">{getArtForTile(tile)}</div>
                               {tile.countryCode && FLAGS[tile.countryCode] && (
                                 <div className="flag">{FLAGS[tile.countryCode]}</div>
                               )}
@@ -673,7 +688,7 @@ export default function MonopolyBoard() {
         </div>
       </main>
 
-      {/* Right Sidebar Inspector (Visible when a country/state tile is tapped) */}
+      {/* Right Sidebar Inspector (Tapping any tile shows its card) */}
       <aside>
         {selectedTile ? (
           <section className="card">
@@ -683,7 +698,7 @@ export default function MonopolyBoard() {
                 {selectedTile.countryCode && FLAGS[selectedTile.countryCode] ? (
                   FLAGS[selectedTile.countryCode]
                 ) : (
-                  ART[selectedTile.type] || null
+                  getArtForTile(selectedTile) || null
                 )}
               </div>
               <div>
