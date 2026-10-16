@@ -1,144 +1,141 @@
-import React from 'react';
-import PropertyCardModal from './PropertyCardModal';
+import React from "react";
+import "./PropertyCardModal.css";
 
-export default function MonopolyBoard({ 
-  boardData, 
-  players, 
-  currentPlayer, 
-  gameState, 
-  selectedProperty, 
-  onTileClick, 
-  onCloseModal, 
-  onBuild, 
-  onMortgage,
-  onRollDice,
-  onEndTurn 
+export default function PropertyCardModal({
+  property,
+  onClose,
+  currentPlayer,
+  gameState,
+  onBuild,
+  onMortgage
 }) {
+  if (!property) return null;
+
+  // Rent breakdown schedule array [Base, 1H, 2H, 3H, 4H, Hotel]
+  const rentList = property.rent || [35, 180, 550, 1150, 1350, 1525];
+
+  // Ownership & active turn validation
+  const isOwner =
+    property.ownerId === currentPlayer?.id ||
+    property.owner === currentPlayer?.name;
+  const isMyTurn =
+    gameState?.isMyTurn ||
+    gameState?.currentPlayerId === currentPlayer?.id;
+
+  // Building eligibility: requires ownership of all cities in the country
+  const canBuild =
+    isOwner &&
+    property.hasCountryMonopoly &&
+    !property.isMortgaged &&
+    (property.houses || 0) < 5;
+
   return (
-    <div className="game-wrapper">
-      {/* Main 11x11 Grid Monopoly Board */}
-      <div className="board-container">
-        {boardData.map((tile, index) => {
-          // Find players standing on this tile index
-          const playersOnTile = players.filter(p => p.position === index);
+    <div className="modal-overlay" onClick={onClose}>
+      <div
+        className="property-card-modal"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button className="close-btn" onClick={onClose}>
+          ×
+        </button>
 
-          return (
-            <div
-              key={tile.id || index}
-              className={`tile tile-${index} ${tile.isMortgaged ? 'mortgaged' : ''}`}
-              onClick={() => onTileClick(tile)}
-            >
-              {/* Top Color Bar for Properties */}
-              {tile.color && (
-                <div 
-                  className="tile-color-bar" 
-                  style={{ backgroundColor: tile.color }} 
-                />
-              )}
+        <h2 className="property-title">{property.name}</h2>
 
-              {/* Mortgage Tag if applicable */}
-              {tile.isMortgaged && <span className="mortgage-tag">MORTGAGED</span>}
-
-              <div className="tile-content">
-                {tile.flag && <img src={tile.flag} alt="flag" className="tile-flag" />}
-                {tile.icon && <span className="tile-icon">{tile.icon}</span>}
-                <span className="tile-name">{tile.name}</span>
-                {tile.price && <span className="tile-price">${tile.price}</span>}
-
-                {/* Houses / Hotels display */}
-                {tile.houses > 0 && (
-                  <div className="houses-container">
-                    {tile.houses === 5 ? (
-                      <span className="hotel-symbol">🏢</span>
-                    ) : (
-                      Array.from({ length: tile.houses }).map((_, i) => (
-                        <span key={i} className="house-symbol">🏠</span>
-                      ))
-                    )}
-                  </div>
-                )}
-
-                {/* Owner color indicator badge */}
-                {tile.owner && (
-                  <span 
-                    className="owner-badge" 
-                    style={{ backgroundColor: tile.ownerColor || '#fff' }} 
-                  />
-                )}
-
-                {/* Player Tokens inside the tile */}
-                <div className="player-tokens">
-                  {playersOnTile.map(player => (
-                    <div 
-                      key={player.id} 
-                      className="player-token" 
-                      style={{ backgroundColor: player.color }}
-                      title={player.name}
-                    />
-                  ))}
-                </div>
+        {property.type === "PROPERTY" || property.price ? (
+          <>
+            <div className="rent-table">
+              <div className="table-header">
+                <span>when</span>
+                <span>get</span>
+              </div>
+              <div className="rent-row">
+                <span>with rent</span>
+                <span>${rentList[0]}</span>
+              </div>
+              <div className="rent-row">
+                <span>with one house</span>
+                <span>${rentList[1]}</span>
+              </div>
+              <div className="rent-row">
+                <span>with two houses</span>
+                <span>${rentList[2]}</span>
+              </div>
+              <div className="rent-row">
+                <span>with three houses</span>
+                <span>${rentList[3]}</span>
+              </div>
+              <div className="rent-row">
+                <span>with four houses</span>
+                <span>${rentList[4]}</span>
+              </div>
+              <div className="rent-row">
+                <span>with a hotel</span>
+                <span>${rentList[5]}</span>
               </div>
             </div>
-          );
-        })}
 
-        {/* Center Control Panel */}
-        <div className="board-center">
-          <h1>MONOPOLY</h1>
-          <div className="dice-display">
-            {gameState.dice ? `🎲 ${gameState.dice[0]} - ${gameState.dice[1]}` : '🎲 Roll to Start'}
+            <div className="property-costs">
+              <div className="cost-item">
+                <span>Price</span>
+                <strong>${property.price}</strong>
+              </div>
+              <div className="cost-item">
+                <span>🏠</span>
+                <strong>${property.houseCost || 200}</strong>
+              </div>
+              <div className="cost-item">
+                <span>🏨</span>
+                <strong>${property.houseCost || 200}</strong>
+              </div>
+            </div>
+
+            {(property.ownerName || property.owner) && (
+              <p
+                style={{
+                  textAlign: "center",
+                  marginTop: "12px",
+                  fontSize: "13px",
+                  color: "#cbd5e1"
+                }}
+              >
+                Owned by{" "}
+                <strong style={{ color: property.ownerColor || "#818cf8" }}>
+                  {property.ownerName || property.owner}
+                </strong>
+                {property.isMortgaged ? " (Mortgaged)" : ""}
+              </p>
+            )}
+
+            {/* Actions available when it's your turn and you own the property */}
+            {isMyTurn && isOwner && (
+              <div className="property-actions">
+                {canBuild && (
+                  <button
+                    className="action-btn build-btn"
+                    onClick={() => onBuild(property.id)}
+                  >
+                    Build {(property.houses || 0) === 4 ? "Hotel 🏨" : "House 🏠"}
+                  </button>
+                )}
+
+                <button
+                  className="action-btn mortgage-btn"
+                  onClick={() => onMortgage(property.id)}
+                >
+                  {property.isMortgaged ? "Unmortgage" : "Mortgage"}
+                </button>
+              </div>
+            )}
+          </>
+        ) : (
+          <div style={{ textAlign: "center", padding: "20px 0" }}>
+            <div style={{ fontSize: "3rem", marginBottom: "10px" }}>
+              {property.icon || "🎲"}
+            </div>
+            <p>{property.type || "SPECIAL TILE"}</p>
           </div>
-          <div className="turn-indicator">
-            Turn: <strong>{gameState.currentTurnName || 'Waiting...'}</strong>
-          </div>
-          
-          <div className="action-buttons">
-            <button onClick={onRollDice} disabled={!gameState.isMyTurn}>
-              Roll Dice
-            </button>
-            <button onClick={onEndTurn} disabled={!gameState.isMyTurn}>
-              End Turn
-            </button>
-          </div>
-        </div>
+        )}
       </div>
-
-        {/* Sidebar / Player Status Display */}
-        <div className="sidebar">
-          <div className="player-list">
-            <h3>Players</h3>
-            {players.map(p => (
-              <div key={p.id} className="player-card">
-                <span className="player-dot" style={{ backgroundColor: p.color }} />
-                <div>
-                  <strong>{p.name}</strong>
-                  <div>${p.money}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="game-log">
-            <h3>Game Log</h3>
-            <div className="log-messages">
-              {gameState.logs?.map((log, index) => (
-                <div key={index} className="log-entry">{log}</div>
-              )) || <div className="log-entry">Game started. Welcome!</div>}
-            </div>
-          </div>
-        </div>
-
-      {/* Property Details Modal Popup */}
-      {selectedProperty && (
-        <PropertyCardModal
-          property={selectedProperty}
-          onClose={onCloseModal}
-          currentPlayer={currentPlayer}
-          gameState={gameState}
-          onBuild={onBuild}
-          onMortgage={onMortgage}
-        />
-      )}
     </div>
   );
 }
