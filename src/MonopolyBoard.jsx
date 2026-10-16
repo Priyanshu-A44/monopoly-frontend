@@ -1,7 +1,5 @@
-// MonopolyBoard.jsx
 import React, { useState, useEffect } from "react";
 import io from "socket.io-client";
-import PropertyCardModal from "./PropertyCardModal";
 import "./MonopolyBoard.css";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
@@ -51,19 +49,64 @@ const DEFAULT_BOARD = [
   { id: 39, name: "Tokyo", price: 400, colorGroup: "#6366f1", countryCode: "JP", type: "PROPERTY", houseCost: 200, rent: [50, 200, 600, 1400, 1700, 2000] }
 ];
 
+// Returns visual icons for non-country properties and special tiles
+const getTileIcon = (tile) => {
+  if (!tile) return null;
+  const name = tile.name?.toLowerCase() || "";
+  const type = tile.type || "";
+
+  if (name.includes("start")) return "🏁";
+  if (name.includes("vacation") || name.includes("free parking")) return "🏝️";
+  if (name.includes("go to prison")) return "🚔";
+  if (name.includes("in prison") || name.includes("visiting")) return "🔒";
+  if (type === "CHEST" || name.includes("chest")) return "📦";
+  if (type === "CHANCE" || name.includes("chance")) return "❓";
+  if (type === "RAILROAD" || name.includes("airport")) return "✈️";
+  if (type === "TAX" || name.includes("tax")) return "💸";
+  if (name.includes("electric")) return "⚡";
+  if (name.includes("water")) return "💧";
+
+  return null;
+};
+
+// Symmetrical 40-Tile Grid Position Mapping (11x11 Grid)
+const getTileGridStyle = (index) => {
+  if (index >= 0 && index <= 10) {
+    return { gridColumn: 11 - index, gridRow: 11 };
+  } else if (index >= 11 && index <= 20) {
+    return { gridColumn: 1, gridRow: 11 - (index - 10) };
+  } else if (index >= 21 && index <= 30) {
+    return { gridColumn: 1 + (index - 20), gridRow: 1 };
+  } else if (index >= 31 && index <= 39) {
+    return { gridColumn: 11, gridRow: 1 + (index - 30) };
+  }
+  return {};
+};
+
 export default function MonopolyBoard() {
-  const [board, setBoard] = useState(DEFAULT_BOARD);
-  const [players, setPlayers] = useState([]);
-  const [selectedProperty, setSelectedProperty] = useState(null);
-  const [currentPlayer, setCurrentPlayer] = useState({ id: 1, name: "Player 1", money: 1500 });
-  const [gameState, setGameState] = useState({ isCurrentTurn: true });
+  const [playerName, setPlayerName] = useState("");
+  const [roomCode, setRoomCode] = useState("qb4kw");
+  const [joined, setJoined] = useState(false);
+  const [lobbyPlayers, setLobbyPlayers] = useState([]);
+  const [gameState, setGameState] = useState(null);
+  const [displayPositions, setDisplayPositions] = useState({});
+  const [bidAmount, setBidAmount] = useState("");
+  const [selectedTile, setSelectedTile] = useState(null);
 
   useEffect(() => {
     socket = io(BACKEND_URL);
 
-    socket.on("gameState", (data) => {
-      if (data.board) setBoard(data.board);
-      if (data.players) setPlayers(data.players);
+    socket.on("ROOM_UPDATE", ({ players }) => {
+      setLobbyPlayers(players || []);
+    });
+
+    socket.on("GAME_STATE_UPDATE", (updatedState) => {
+      setGameState(updatedState);
+    });
+
+    socket.on("ERROR", (errMsg) => {
+      console.error("[Engine Error]:", errMsg);
+      alert(errMsg);
     });
 
     return () => {
@@ -71,89 +114,444 @@ export default function MonopolyBoard() {
     };
   }, []);
 
-  const handleTileClick = (tile) => {
-    if (tile.type === "PROPERTY") {
-      setSelectedProperty(tile);
+  // Smooth Walking Token Animation Engine
+  useEffect(() => {
+    if (!gameState?.players) return;
+
+    setDisplayPositions((prev) => {
+      const initial = { ...prev };
+      let updated = false;
+      gameState.players.forEach((p) => {
+        if (initial[p.id] === undefined) {
+          initial[p.id] = p.position;
+          updated = true;
+        }
+      });
+      return updated ? initial : prev;
+    });
+
+    const timer = setInterval(() => {
+      setDisplayPositions((prev) => {
+        let hasMoved = false;
+        const nextPositions = { ...prev };
+
+        gameState.players.forEach((p) => {
+          const current = nextPositions[p.id];
+          const target = p.position;
+
+          if (current !== undefined && current !== target) {
+            nextPositions[p.id] = (current + 1) % 40;
+            hasMoved = true;
+          }
+        });
+
+        return hasMoved ? nextPositions : prev;
+      });
+    }, 150);
+
+    return () => clearInterval(timer);
+  }, [gameState]);
+
+  const handleJoin = (e) => {
+    e.preventDefault();
+    if (playerName.trim() && roomCode.trim()) {
+      socket.emit("JOIN_GAME", { roomCode, playerName });
+      setJoined(true);
     }
   };
 
-  const handleBuild = (tileId) => {
-    if (socket) {
-      socket.emit("buildHouse", { tileId });
-    }
+  const handleStartGame = () => socket.emit("START_GAME", { roomCode });
+  const handleRollDice = () => socket.emit("ACTION_ROLL", { roomCode });
+  const handlePayBail = () => socket.emit("ACTION_PAY_BAIL", { roomCode });
+  const handleBuyProperty = () => socket.emit("ACTION_BUY", { roomCode });
+  const handleDeclineProperty = () => socket.emit("ACTION_DECLINE", { roomCode });
+
+  const handleBuildHouse = (tileId) => {
+    socket.emit("ACTION_BUILD_HOUSE", { roomCode, tileId });
   };
 
   const handleMortgage = (tileId) => {
-    if (socket) {
-      socket.emit("mortgageProperty", { tileId });
+    socket.emit("ACTION_MORTGAGE", { roomCode, tileId });
+  };
+
+  const handleUnmortgage = (tileId) => {
+    socket.emit("ACTION_UNMORTGAGE", { roomCode, tileId });
+  };
+
+  const handlePlaceBid = (e) => {
+    e.preventDefault();
+    if (bidAmount) {
+      socket.emit("ACTION_BID", { roomCode, amount: Number(bidAmount) });
+      setBidAmount("");
     }
   };
 
+  const handlePassBid = () => socket.emit("ACTION_PASS_BID", { roomCode });
+  const handleEndTurn = () => socket.emit("ACTION_END_TURN", { roomCode });
+
+  if (!joined) {
+    return (
+      <div className="lobby-container">
+        <h2>Join Monopoly Game</h2>
+        <form onSubmit={handleJoin}>
+          <input
+            type="text"
+            placeholder="Your Name"
+            value={playerName}
+            onChange={(e) => setPlayerName(e.target.value)}
+            required
+          />
+          <input
+            type="text"
+            placeholder="Room Code"
+            value={roomCode}
+            onChange={(e) => setRoomCode(e.target.value)}
+            required
+          />
+          <button type="submit">Join Lobby</button>
+        </form>
+      </div>
+    );
+  }
+
+  if (!gameState) {
+    return (
+      <div className="lobby-container">
+        <h2>Room Code: {roomCode}</h2>
+        <h3>Players Joined ({lobbyPlayers.length}):</h3>
+        <ul>
+          {lobbyPlayers.map((p, idx) => (
+            <li key={p.id || idx} style={{ color: p.color || "#a5b4fc", fontWeight: "bold" }}>
+              {p.name}
+            </li>
+          ))}
+        </ul>
+        <button onClick={handleStartGame}>Start Game</button>
+      </div>
+    );
+  }
+
+  const board = gameState?.board || DEFAULT_BOARD;
+  const players = gameState?.players || [];
+  const logs = gameState?.log || [];
+  const properties = gameState?.properties || {};
+  const turnPhase = gameState?.turnPhase;
+
+  const currentTurnPlayer = players[gameState?.turnIndex] || players[0] || {};
+  const isMyTurn = currentTurnPlayer.id === socket?.id;
+
+  // Helper function to check if the current user owns every city in a given country
+  const hasFullCountry = (countryCode) => {
+    if (!countryCode) return false;
+    const countryTiles = board.filter((t) => t.countryCode === countryCode);
+    return (
+      countryTiles.length > 0 &&
+      countryTiles.every((t) => properties[t.id]?.ownerId === socket?.id)
+    );
+  };
+
+  const renderTile = (tile, tileIndex) => {
+    const icon = getTileIcon(tile);
+    const propData = properties[tile.id];
+    const owner = players.find((p) => p.id === propData?.ownerId);
+    const houses = propData?.houses || 0;
+
+    return (
+      <div
+        key={tileIndex}
+        className={`tile ${tile?.type || ""} ${propData?.isMortgaged ? "mortgaged" : ""}`}
+        style={getTileGridStyle(tileIndex)}
+        onClick={() => setSelectedTile(tile)}
+      >
+        {tile?.colorGroup && (
+          <div
+            className="tile-color-bar"
+            style={{ backgroundColor: tile.colorGroup }}
+          />
+        )}
+
+        <div className="tile-content">
+          {tile?.countryCode ? (
+            <img
+              src={`https://flagcdn.com/w40/${tile.countryCode.toLowerCase()}.png`}
+              alt={tile.countryCode}
+              className="tile-flag"
+            />
+          ) : icon ? (
+            <div className="tile-icon">{icon}</div>
+          ) : null}
+
+          <div className="tile-name">{tile?.name}</div>
+          {tile?.price && <div className="tile-price">${tile.price}</div>}
+
+          {/* Color-Coded Property Owner Badge */}
+          {owner && (
+            <div
+              className="owner-badge"
+              style={{ backgroundColor: owner.color || "#6366f1" }}
+              title={`Owned by ${owner.name}`}
+            />
+          )}
+
+          {/* Houses & Hotels Display */}
+          {houses > 0 && (
+            <div className="houses-container">
+              {houses === 5 ? (
+                <span className="hotel-symbol">🏨</span>
+              ) : (
+                Array.from({ length: houses }).map((_, i) => (
+                  <span key={i} className="house-symbol">🏠</span>
+                ))
+              )}
+            </div>
+          )}
+
+          {propData?.isMortgaged && <div className="mortgage-tag">MORTGAGED</div>}
+        </div>
+      </div>
+    );
+  };
+
+  const selectedTilePropData = selectedTile ? properties[selectedTile.id] : null;
+  const selectedTileOwner = selectedTilePropData ? players.find((p) => p.id === selectedTilePropData.ownerId) : null;
+  const selectedTileRent = selectedTile?.rent || [10, 50, 150, 450, 625, 750];
+
   return (
-    <div className="monopoly-board-container">
-      <div className="board">
-        {board.map((tile) => {
-          const playersOnTile = players.filter((p) => p.position === tile.id);
+    <div className="game-wrapper">
+      <div className="board-container" style={{ position: "relative" }}>
+        <div className="board-center">
+          <h1>Monopoly</h1>
+
+          {gameState?.currentDice && (
+            <div className="dice-display">
+              🎲 {gameState.currentDice[0]} : {gameState.currentDice[1]} 🎲
+            </div>
+          )}
+
+          <div className="turn-indicator">
+            Current Turn: <strong>{currentTurnPlayer.name || "N/A"}</strong>
+          </div>
+
+          {isMyTurn && (
+            <div className="action-buttons" style={{ flexDirection: "column", alignItems: "center" }}>
+              {turnPhase === "AWAITING_ROLL" && (
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button onClick={handleRollDice}>
+                    {currentTurnPlayer.inJail ? "Roll for Doubles 🎲" : "Roll Dice"}
+                  </button>
+                  {currentTurnPlayer.inJail && (
+                    <button onClick={handlePayBail} style={{ backgroundColor: "#f59e0b" }}>
+                      Pay $50 Bail 🔓
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {turnPhase === "ACTION_REQUIRED" && (
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button onClick={handleBuyProperty}>Buy Property</button>
+                  <button onClick={handleDeclineProperty} style={{ backgroundColor: "#ef4444" }}>
+                    Auction Property
+                  </button>
+                </div>
+              )}
+
+              {turnPhase === "AWAITING_END_TURN" && (
+                <button onClick={handleEndTurn}>End Turn</button>
+              )}
+            </div>
+          )}
+
+          {turnPhase === "AUCTION" && gameState?.auction && (
+            <div className="auction-controls" style={{ marginTop: "12px" }}>
+              <p>Auction in Progress! Highest Bid: ${gameState.auction.currentBid || 0}</p>
+              <form onSubmit={handlePlaceBid} style={{ display: "flex", gap: "8px", marginTop: "6px" }}>
+                <input
+                  type="number"
+                  placeholder="Bid Amount"
+                  value={bidAmount}
+                  onChange={(e) => setBidAmount(e.target.value)}
+                  style={{ width: "100px", padding: "4px" }}
+                />
+                <button type="submit">Place Bid</button>
+                <button type="button" onClick={handlePassBid} style={{ backgroundColor: "#6b7280" }}>
+                  Pass
+                </button>
+              </form>
+            </div>
+          )}
+        </div>
+
+        {/* 1. Board Grid Tiles */}
+        {board.map((tile, index) => renderTile(tile, index))}
+
+        {/* 2. Floating Animated Player Tokens */}
+        {players.map((player, pIdx) => {
+          const pos = displayPositions[player.id] ?? player.position;
+          const gridStyle = getTileGridStyle(pos);
+          const colIndex = gridStyle.gridColumn - 1;
+          const rowIndex = gridStyle.gridRow - 1;
+
+          const colCenter = ((colIndex + 0.5) / 11) * 100;
+          const rowCenter = ((rowIndex + 0.5) / 11) * 100;
+
+          const offsetX = (pIdx % 2) * 12 - 6;
+          const offsetY = Math.floor(pIdx / 2) * 12 - 6;
 
           return (
             <div
-              key={tile.id}
-              className={`tile tile-${tile.id} tile-type-${tile.type}`}
-              onClick={() => handleTileClick(tile)}
+              key={player.id}
+              className="player-character-token floating-token"
+              style={{
+                position: "absolute",
+                left: `calc(${colCenter}% + ${offsetX}px)`,
+                top: `calc(${rowCenter}% + ${offsetY}px)`,
+                transform: "translate(-50%, -50%)",
+                backgroundColor: player.color || "#6366f1",
+                transition: "left 0.15s linear, top 0.15s linear",
+                zIndex: 30,
+                pointerEvents: "none"
+              }}
+              title={player.name}
             >
-              {tile.colorGroup && (
-                <div
-                  className="tile-header"
-                  style={{ backgroundColor: tile.colorGroup }}
-                >
-                  {tile.countryCode && <span className="flag">{tile.countryCode}</span>}
+              <div className="character-eyes">
+                <div className="eye">
+                  <div className="pupil" />
                 </div>
-              )}
-
-              <div className="tile-content">
-                <span className="tile-name">{tile.name}</span>
-                {tile.price && <span className="tile-price">${tile.price}</span>}
+                <div className="eye">
+                  <div className="pupil" />
+                </div>
               </div>
-
-              {playersOnTile.length > 0 && (
-                <div className="player-tokens">
-                  {playersOnTile.map((p) => (
-                    <div
-                      key={p.id}
-                      className="player-token"
-                      style={{ backgroundColor: p.color || "#3b82f6" }}
-                    />
-                  ))}
-                </div>
-              )}
             </div>
           );
         })}
       </div>
 
-      {/* Property Details Modal */}
-      {selectedProperty && (
-        <PropertyCardModal
-          property={{
-            ...selectedProperty,
-            hotelCost: selectedProperty.houseCost,
-            mortgageValue: selectedProperty.price ? selectedProperty.price / 2 : 0,
-            rent: {
-              base: selectedProperty.rent?.[0] || 0,
-              oneHouse: selectedProperty.rent?.[1] || 0,
-              twoHouses: selectedProperty.rent?.[2] || 0,
-              threeHouses: selectedProperty.rent?.[3] || 0,
-              fourHouses: selectedProperty.rent?.[4] || 0,
-              hotel: selectedProperty.rent?.[5] || 0,
-            }
-          }}
-          onClose={() => setSelectedProperty(null)}
-          currentPlayer={currentPlayer}
-          gameState={gameState}
-          onBuild={handleBuild}
-          onMortgage={handleMortgage}
-        />
+      {/* 3. Property Details Modal Popup */}
+      {selectedTile && (
+        <div className="tile-modal-overlay" onClick={() => setSelectedTile(null)}>
+          <div className="tile-card-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="close-modal-btn" onClick={() => setSelectedTile(null)}>✕</button>
+
+            <div className="modal-header">
+              {selectedTile.countryCode && (
+                <img
+                  src={`https://flagcdn.com/w40/${selectedTile.countryCode.toLowerCase()}.png`}
+                  alt=""
+                  className="modal-flag"
+                />
+              )}
+              <h2>{selectedTile.name}</h2>
+            </div>
+
+            {selectedTile.type === "PROPERTY" ? (
+              <>
+                <div className="rent-table-header">
+                  <span>when</span>
+                  <span>get</span>
+                </div>
+
+                <div className="rent-breakdown">
+                  <div className="rent-row"><span>with rent</span><strong>${selectedTileRent[0]}</strong></div>
+                  <div className="rent-row"><span>with one house</span><strong>${selectedTileRent[1]}</strong></div>
+                  <div className="rent-row"><span>with two houses</span><strong>${selectedTileRent[2]}</strong></div>
+                  <div className="rent-row"><span>with three houses</span><strong>${selectedTileRent[3]}</strong></div>
+                  <div className="rent-row"><span>with four houses</span><strong>${selectedTileRent[4]}</strong></div>
+                  <div className="rent-row highlight"><span>with a hotel</span><strong>${selectedTileRent[5]}</strong></div>
+                </div>
+
+                <div className="modal-cost-footer">
+                  <div className="cost-box">
+                    <span className="cost-label">Price</span>
+                    <strong className="cost-val">${selectedTile.price}</strong>
+                  </div>
+                  <div className="cost-box">
+                    <span className="cost-label">🏠 House</span>
+                    <strong className="cost-val">${selectedTile.houseCost || 100}</strong>
+                  </div>
+                  <div className="cost-box">
+                    <span className="cost-label">🏨 Hotel</span>
+                    <strong className="cost-val">${selectedTile.houseCost || 100}</strong>
+                  </div>
+                </div>
+
+                <div className="modal-owner-info">
+                  {selectedTileOwner ? (
+                    <p>
+                      Owned by <strong style={{ color: selectedTileOwner.color }}>{selectedTileOwner.name}</strong>
+                      {selectedTilePropData?.isMortgaged ? " (Mortgaged)" : ""}
+                    </p>
+                  ) : (
+                    <p className="unowned-text">Unowned Property</p>
+                  )}
+                </div>
+
+                {isMyTurn && selectedTilePropData?.ownerId === socket?.id && (
+                  <div className="modal-actions">
+                    {/* Build Button - Only enabled when player owns the entire country */}
+                    {hasFullCountry(selectedTile.countryCode) && !selectedTilePropData?.isMortgaged && (selectedTilePropData?.houses || 0) < 5 && (
+                      <button
+                        className="modal-btn btn-build"
+                        onClick={() => handleBuildHouse(selectedTile.id)}
+                      >
+                        Build {(selectedTilePropData?.houses || 0) === 4 ? "Hotel 🏨" : "House 🏠"} (${selectedTile.houseCost || 100})
+                      </button>
+                    )}
+
+                    {/* Mortgage / Unmortgage Buttons */}
+                    {!selectedTilePropData?.isMortgaged ? (
+                      (selectedTilePropData?.houses || 0) === 0 && (
+                        <button
+                          className="modal-btn btn-mortgage"
+                          onClick={() => handleMortgage(selectedTile.id)}
+                        >
+                          Mortgage (+${Math.round(selectedTile.price / 2)})
+                        </button>
+                      )
+                    ) : (
+                      <button
+                        className="modal-btn btn-unmortgage"
+                        onClick={() => handleUnmortgage(selectedTile.id)}
+                      >
+                        Unmortgage (-${Math.round((selectedTile.price / 2) * 1.1)})
+                      </button>
+                    )}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="special-tile-info">
+                <div className="tile-icon-large">{getTileIcon(selectedTile)}</div>
+                <p>{selectedTile.type || "SPECIAL TILE"}</p>
+              </div>
+            )}
+          </div>
+        </div>
       )}
+
+      {/* 4. Sidebar */}
+      <div className="sidebar">
+        <div className="player-list">
+          <h3>Players</h3>
+          {players.map((p) => (
+            <div key={p.id} className="player-card">
+              <span className="player-dot" style={{ backgroundColor: p.color || "#6366f1" }} />
+              <strong>{p.name}</strong> : ${p.money} {p.inJail ? "🔒" : ""}
+            </div>
+          ))}
+        </div>
+
+        <div className="game-log">
+          <h3>Game Log</h3>
+          <div className="log-messages">
+            {(logs || []).map((log, i) => (
+              <div key={i} className="log-entry">
+                {typeof log === "string" ? log : JSON.stringify(log)}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
