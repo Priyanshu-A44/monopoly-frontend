@@ -4,40 +4,64 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(5px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  perspective: 1000px;
 }
 
 .property-card-modal {
   background: linear-gradient(145deg, #23223f, #18162b);
-  border: 1px solid #3c3863;
-  border-radius: 12px;
-  padding: 20px;
-  width: 320px;
+  border: 1px solid #4f46e5;
+  border-radius: 16px;
+  padding: 22px;
+  width: 330px;
   color: #ffffff;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.7), 0 0 20px rgba(99, 102, 241, 0.2);
   position: relative;
   font-family: sans-serif;
+}
+
+.card-3d-flip {
+  animation: flipCard 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  transform-style: preserve-3d;
+}
+
+@keyframes flipCard {
+  0% {
+    opacity: 0;
+    transform: rotateY(-90deg) scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: rotateY(0deg) scale(1);
+  }
 }
 
 .close-btn {
   position: absolute;
   top: 10px;
-  right: 12px;
+  right: 14px;
   background: none;
   border: none;
   color: #aaa;
-  font-size: 22px;
+  font-size: 24px;
   cursor: pointer;
+  transition: color 0.15s;
+}
+
+.close-btn:hover {
+  color: #ffffff;
 }
 
 .property-title {
   text-align: center;
   margin-top: 0;
   font-size: 22px;
+  letter-spacing: 0.5px;
 }
 
 .rent-table {
@@ -49,14 +73,21 @@
 .table-header, .rent-row {
   display: flex;
   justify-content: space-between;
-  padding: 4px 0;
+  padding: 5px 0;
   font-size: 14px;
 }
 
 .table-header {
-  color: #8380b0;
+  color: #818cf8;
   border-bottom: 1px dashed #3c3863;
   margin-bottom: 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.highlight-hotel {
+  color: #38bdf8;
+  font-weight: bold;
 }
 
 .property-costs {
@@ -64,6 +95,10 @@
   justify-content: space-around;
   text-align: center;
   margin-top: 10px;
+  background: #111024;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #2d2952;
 }
 
 .cost-item {
@@ -80,19 +115,24 @@
 
 .action-btn {
   flex: 1;
-  padding: 8px;
+  padding: 10px;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   font-weight: bold;
   cursor: pointer;
+  transition: transform 0.1s, opacity 0.15s;
+}
+
+.action-btn:hover {
+  transform: translateY(-2px);
 }
 
 .build-btn {
-  background: #28a745;
+  background: #10b981;
   color: white;
 }
 
 .mortgage-btn {
-  background: #dc3545;
+  background: #f59e0b;
   color: white;
 }
