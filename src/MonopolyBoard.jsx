@@ -8,7 +8,36 @@ import "./PropertyCardModal.css";
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
 let socket;
 
-/* Flag SVGs */
+const playSound = (type) => {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    if (type === "roll") {
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(120, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.15);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.15);
+    } else if (type === "buy") {
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+      osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.25);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.25);
+    }
+  } catch (e) {
+    console.log("Audio Error", e);
+  }
+};
+
 const star = (cx, cy, r, rot = -90) => {
   const p = [];
   for (let i = 0; i < 10; i++) {
@@ -16,7 +45,7 @@ const star = (cx, cy, r, rot = -90) => {
     const rr = i % 2 ? r * 0.382 : r;
     p.push((cx + rr * Math.cos(a)).toFixed(1) + "," + (cy + rr * Math.sin(a)).toFixed(1));
   }
-  return <polygon points={p.join(" ")} key={cx + "-" + cy} />;
+  return <polygon points={p.join(" ")} key={`${cx}-${cy}`} />;
 };
 
 const fsvg = (inner) => (
@@ -104,7 +133,6 @@ const FLAGS = {
   )
 };
 
-/* Vector Graphics */
 const PLANE = "M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z";
 const ART = {
   airport: (
@@ -176,45 +204,45 @@ const GROUPS = {
 
 const DEFAULT_BOARD = [
   { id: 0, name: "Start", type: "start" },
-  { id: 1, name: "Salvador", countryCode: "BR", price: 60, type: "prop" },
+  { id: 1, name: "Salvador", countryCode: "BR", price: 60, type: "prop", rent: [2, 10, 30, 90, 160, 250], houseCost: 50 },
   { id: 2, name: "Treasure", type: "treasure" },
-  { id: 3, name: "Rio", countryCode: "BR", price: 70, type: "prop" },
+  { id: 3, name: "Rio", countryCode: "BR", price: 70, type: "prop", rent: [4, 20, 60, 180, 320, 450], houseCost: 50 },
   { id: 4, name: "Earnings Tax", price: 200, type: "tax", amount: "10%" },
   { id: 5, name: "TLV Airport", countryCode: "IL", price: 200, type: "airport" },
-  { id: 6, name: "Tel Aviv", countryCode: "IL", price: 90, type: "prop" },
-  { id: 7, name: "Haifa", countryCode: "IL", price: 100, type: "prop" },
+  { id: 6, name: "Tel Aviv", countryCode: "IL", price: 90, type: "prop", rent: [6, 30, 90, 270, 400, 550], houseCost: 50 },
+  { id: 7, name: "Haifa", countryCode: "IL", price: 100, type: "prop", rent: [6, 30, 90, 270, 400, 550], houseCost: 50 },
   { id: 8, name: "Surprise", type: "surprise" },
-  { id: 9, name: "Jerusalem", countryCode: "IL", price: 110, type: "prop" },
+  { id: 9, name: "Jerusalem", countryCode: "IL", price: 110, type: "prop", rent: [8, 40, 100, 300, 450, 600], houseCost: 50 },
   { id: 10, name: "Prison", type: "jail" },
-  { id: 11, name: "Venice", countryCode: "IT", price: 130, type: "prop" },
+  { id: 11, name: "Venice", countryCode: "IT", price: 130, type: "prop", rent: [10, 50, 150, 450, 625, 750], houseCost: 100 },
   { id: 12, name: "Power Company", price: 150, type: "utility", u: "power" },
-  { id: 13, name: "Milan", countryCode: "IT", price: 140, type: "prop" },
-  { id: 14, name: "Rome", countryCode: "IT", price: 160, type: "prop" },
+  { id: 13, name: "Milan", countryCode: "IT", price: 140, type: "prop", rent: [10, 50, 150, 450, 625, 750], houseCost: 100 },
+  { id: 14, name: "Rome", countryCode: "IT", price: 160, type: "prop", rent: [12, 60, 180, 500, 700, 900], houseCost: 100 },
   { id: 15, name: "MUC Airport", countryCode: "DE", price: 200, type: "airport" },
-  { id: 16, name: "Frankfurt", countryCode: "DE", price: 170, type: "prop" },
+  { id: 16, name: "Frankfurt", countryCode: "DE", price: 170, type: "prop", rent: [14, 70, 200, 550, 750, 950], houseCost: 100 },
   { id: 17, name: "Treasure", type: "treasure" },
-  { id: 18, name: "Munich", countryCode: "DE", price: 190, type: "prop" },
-  { id: 19, name: "Berlin", countryCode: "DE", price: 200, type: "prop" },
+  { id: 18, name: "Munich", countryCode: "DE", price: 190, type: "prop", rent: [14, 70, 200, 550, 750, 950], houseCost: 100 },
+  { id: 19, name: "Berlin", countryCode: "DE", price: 200, type: "prop", rent: [16, 80, 220, 600, 800, 1000], houseCost: 100 },
   { id: 20, name: "Vacation", type: "vacation" },
-  { id: 21, name: "Shenzhen", countryCode: "CN", price: 210, type: "prop" },
+  { id: 21, name: "Shenzhen", countryCode: "CN", price: 210, type: "prop", rent: [18, 90, 250, 700, 875, 1050], houseCost: 150 },
   { id: 22, name: "Surprise", type: "surprise" },
-  { id: 23, name: "Beijing", countryCode: "CN", price: 230, type: "prop" },
-  { id: 24, name: "Shanghai", countryCode: "CN", price: 250, type: "prop" },
+  { id: 23, name: "Beijing", countryCode: "CN", price: 230, type: "prop", rent: [18, 90, 250, 700, 875, 1050], houseCost: 150 },
+  { id: 24, name: "Shanghai", countryCode: "CN", price: 250, type: "prop", rent: [20, 100, 300, 750, 925, 1100], houseCost: 150 },
   { id: 25, name: "CDG Airport", countryCode: "FR", price: 200, type: "airport" },
-  { id: 26, name: "Lyon", countryCode: "FR", price: 260, type: "prop" },
+  { id: 26, name: "Lyon", countryCode: "FR", price: 260, type: "prop", rent: [22, 110, 330, 800, 975, 1150], houseCost: 150 },
   { id: 27, name: "Water Company", price: 150, type: "utility", u: "water" },
-  { id: 28, name: "Toulouse", countryCode: "FR", price: 270, type: "prop" },
-  { id: 29, name: "Paris", countryCode: "FR", price: 290, type: "prop" },
+  { id: 28, name: "Toulouse", countryCode: "FR", price: 270, type: "prop", rent: [22, 110, 330, 800, 975, 1150], houseCost: 150 },
+  { id: 29, name: "Paris", countryCode: "FR", price: 290, type: "prop", rent: [24, 120, 360, 850, 1025, 1200], houseCost: 150 },
   { id: 30, name: "Go to prison", type: "gotojail" },
-  { id: 31, name: "Liverpool", countryCode: "GB", price: 310, type: "prop" },
-  { id: 32, name: "Manchester", countryCode: "GB", price: 320, type: "prop" },
+  { id: 31, name: "Liverpool", countryCode: "GB", price: 310, type: "prop", rent: [22, 110, 330, 800, 975, 1150], houseCost: 150 },
+  { id: 32, name: "Manchester", countryCode: "GB", price: 320, type: "prop", rent: [22, 110, 330, 800, 975, 1150], houseCost: 150 },
   { id: 33, name: "Treasure", type: "treasure" },
-  { id: 34, name: "London", countryCode: "GB", price: 340, type: "prop" },
+  { id: 34, name: "London", countryCode: "GB", price: 340, type: "prop", rent: [24, 120, 360, 850, 1025, 1200], houseCost: 150 },
   { id: 35, name: "JFK Airport", countryCode: "US", price: 200, type: "airport" },
   { id: 36, name: "Surprise", type: "surprise" },
-  { id: 37, name: "San Francisco", countryCode: "US", price: 360, type: "prop" },
+  { id: 37, name: "San Francisco", countryCode: "US", price: 360, type: "prop", rent: [35, 180, 550, 1150, 1350, 1525], houseCost: 200 },
   { id: 38, name: "Premium Tax", price: 75, type: "tax", amount: "$75" },
-  { id: 39, name: "New York", countryCode: "US", price: 400, type: "prop" }
+  { id: 39, name: "New York", countryCode: "US", price: 400, type: "prop", rent: [50, 200, 600, 1400, 1700, 2000], houseCost: 200 }
 ];
 
 const posOf = (i) => {
@@ -260,10 +288,12 @@ export default function MonopolyBoard() {
   const [joined, setJoined] = useState(false);
   const [lobbyPlayers, setLobbyPlayers] = useState([]);
   const [gameState, setGameState] = useState(null);
-  const [selectedTileIndex, setSelectedTileIndex] = useState(6);
+  const [selectedTileIndex, setSelectedTileIndex] = useState(null);
+  const [modalProperty, setModalProperty] = useState(null);
   const [spinA, setSpinA] = useState([0, 0]);
   const [spinB, setSpinB] = useState([0, 0]);
   const [isRolling, setIsRolling] = useState(false);
+  const [bidAmount, setBidAmount] = useState("");
 
   useEffect(() => {
     socket = io(BACKEND_URL);
@@ -273,6 +303,8 @@ export default function MonopolyBoard() {
       setGameState(updatedState);
       setIsRolling(false);
     });
+
+    socket.on("ERROR", (errMsg) => alert(errMsg));
 
     return () => socket.disconnect();
   }, []);
@@ -289,11 +321,75 @@ export default function MonopolyBoard() {
 
   const handleRollDice = () => {
     setIsRolling(true);
-    const newSpinA = [spinA[0] + 360 * 2, spinA[1] + 360 * 2];
-    const newSpinB = [spinB[0] + 360 * 2, spinB[1] + 360 * 2];
-    setSpinA(newSpinA);
-    setSpinB(newSpinB);
+    playSound("roll");
+    setSpinA([spinA[0] + 720, spinA[1] + 720]);
+    setSpinB([spinB[0] + 720, spinB[1] + 720]);
     socket.emit("ACTION_ROLL", { roomCode });
+  };
+
+  const handleBuyProperty = () => {
+    playSound("buy");
+    confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
+    socket.emit("ACTION_BUY", { roomCode });
+  };
+
+  const handleDeclineProperty = () => socket.emit("ACTION_DECLINE", { roomCode });
+  const handleEndTurn = () => socket.emit("ACTION_END_TURN", { roomCode });
+  const handlePayBail = () => socket.emit("ACTION_PAY_BAIL", { roomCode });
+
+  const handlePlaceBid = (e) => {
+    e.preventDefault();
+    if (bidAmount) {
+      socket.emit("ACTION_BID", { roomCode, amount: Number(bidAmount) });
+      setBidAmount("");
+    }
+  };
+  const handlePassBid = () => socket.emit("ACTION_PASS_BID", { roomCode });
+
+  const handleBuildHouse = (tileId) => {
+    socket.emit("ACTION_BUILD_HOUSE", { roomCode, tileId });
+  };
+
+  const handleMortgage = (tileId) => {
+    const prop = gameState?.properties?.[tileId];
+    if (prop?.isMortgaged) {
+      socket.emit("ACTION_UNMORTGAGE", { roomCode, tileId });
+    } else {
+      socket.emit("ACTION_MORTGAGE", { roomCode, tileId });
+    }
+  };
+
+  const openTradeModal = () => {
+    const playerProp = (gameState?.board || DEFAULT_BOARD).find(
+      (t) => gameState?.properties?.[t.id]?.ownerId === socket?.id
+    );
+
+    if (!playerProp) {
+      alert("You don't own any properties to trade yet!");
+      return;
+    }
+
+    setModalProperty({
+      ...playerProp,
+      ownerId: socket?.id,
+      ownerName: playerName,
+      houses: gameState?.properties?.[playerProp.id]?.houses || 0,
+      isMortgaged: gameState?.properties?.[playerProp.id]?.isMortgaged || false
+    });
+  };
+
+  const openPropertyModal = (tile) => {
+    const propData = gameState?.properties?.[tile.id];
+    const owner = gameState?.players?.find((p) => p.id === propData?.ownerId);
+
+    setModalProperty({
+      ...tile,
+      ownerId: propData?.ownerId,
+      ownerName: owner?.name,
+      ownerColor: owner?.color,
+      houses: propData?.houses || 0,
+      isMortgaged: propData?.isMortgaged || false
+    });
   };
 
   if (!joined) {
@@ -324,7 +420,7 @@ export default function MonopolyBoard() {
   if (!gameState) {
     return (
       <div className="lobby-container">
-        <h2>Room: {roomCode}</h2>
+        <h2>Room Code: {roomCode}</h2>
         <h3>Joined Players ({lobbyPlayers.length}):</h3>
         <ul>
           {lobbyPlayers.map((p, idx) => (
@@ -340,14 +436,16 @@ export default function MonopolyBoard() {
   const players = gameState?.players || [];
   const properties = gameState?.properties || {};
   const logs = gameState?.log || [];
+  const turnPhase = gameState?.turnPhase;
+
   const currentTurnPlayer = players[gameState?.turnIndex] || players[0] || {};
   const isMyTurn = currentTurnPlayer.id === socket?.id;
 
   const diceA = gameState?.currentDice?.[0] || 4;
   const diceB = gameState?.currentDice?.[1] || 3;
 
-  const selectedTile = board[selectedTileIndex] || board[0];
-  const selectedPropData = properties[selectedTile.id];
+  const selectedTile = selectedTileIndex !== null ? board[selectedTileIndex] : null;
+  const selectedPropData = selectedTile ? properties[selectedTile.id] : null;
 
   return (
     <div className="layout">
@@ -375,7 +473,10 @@ export default function MonopolyBoard() {
                         key={i}
                         className={`c ${pos.corner ? "corner-cell" : "s-" + pos.side} ${isSelected ? "sel" : ""}`}
                         style={{ gridRow: pos.r + 1, gridColumn: pos.c + 1 }}
-                        onClick={() => setSelectedTileIndex(i)}
+                        onClick={() => {
+                          setSelectedTileIndex(i);
+                          openPropertyModal(tile);
+                        }}
                       >
                         {pos.corner ? (
                           <div className={`t corner ${tile.type}`}>
@@ -431,9 +532,17 @@ export default function MonopolyBoard() {
                   <div className="deck" style={{ left: "84cqw", top: "5cqh", "--r": "7deg" }}>
                     <i></i><i></i><div>{ART.treasure}</div><span>Treasure</span>
                   </div>
-                  <div className="deck" style={{ left: "4cqw", top: "70cqh", "--r": "6deg" }}>
+                  
+                  {/* Interactive Trade Deck */}
+                  <div
+                    className="deck"
+                    style={{ left: "4cqw", top: "70cqh", "--r": "6deg", cursor: "pointer" }}
+                    onClick={openTradeModal}
+                    title="Click to Open Trade Menu"
+                  >
                     <i></i><i></i><div>{ART.trade}</div><span>Trade</span>
                   </div>
+
                   <div className="deck" style={{ left: "84cqw", top: "70cqh", "--r": "-7deg" }}>
                     <i></i><i></i><div>{ART.bank}</div><span>Bank</span>
                   </div>
@@ -478,16 +587,52 @@ export default function MonopolyBoard() {
                         </div>
                       </div>
 
-                      <button
-                        className="roll"
-                        type="button"
-                        onClick={handleRollDice}
-                        disabled={!isMyTurn}
-                      >
-                        Roll the dice
-                      </button>
+                      {/* Dynamic Turn Action Overlay */}
+                      {isMyTurn && (
+                        <div style={{ position: "absolute", bottom: "10%", left: "50%", transform: "translateX(-50%)", zIndex: 50, display: "flex", gap: "6px" }}>
+                          {turnPhase === "AWAITING_ROLL" && (
+                            <button className="roll" type="button" onClick={handleRollDice}>
+                              {currentTurnPlayer.inJail ? "Roll Doubles 🎲" : "Roll the dice"}
+                            </button>
+                          )}
+
+                          {turnPhase === "ACTION_REQUIRED" && (
+                            <>
+                              <button className="roll" style={{ background: "#10b981", width: "auto", padding: "0 12px" }} onClick={handleBuyProperty}>
+                                Buy 🏠
+                              </button>
+                              <button className="roll" style={{ background: "#ef4444", width: "auto", padding: "0 12px" }} onClick={handleDeclineProperty}>
+                                Auction 🔨
+                              </button>
+                            </>
+                          )}
+
+                          {turnPhase === "AWAITING_END_TURN" && (
+                            <button className="roll" onClick={handleEndTurn}>
+                              End Turn ⌛
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      {!isMyTurn && (
+                        <div className="roll" style={{ opacity: 0.6, cursor: "not-allowed" }}>
+                          Waiting for {currentTurnPlayer.name}...
+                        </div>
+                      )}
                     </div>
                   </div>
+
+                  {turnPhase === "AUCTION" && gameState?.auction && (
+                    <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", background: "#181433", padding: "12px", borderRadius: "10px", border: "1px solid var(--gold)", zIndex: 60, textAlign: "center" }}>
+                      <p>Auction Bid: ${gameState.auction.currentBid || 0}</p>
+                      <form onSubmit={handlePlaceBid} style={{ display: "flex", gap: "4px", marginTop: "6px" }}>
+                        <input type="number" placeholder="Bid" value={bidAmount} onChange={(e) => setBidAmount(e.target.value)} style={{ width: "70px", padding: "4px" }} />
+                        <button type="submit" style={{ padding: "4px 8px" }}>Bid</button>
+                        <button type="button" onClick={handlePassBid} style={{ padding: "4px 8px" }}>Pass</button>
+                      </form>
+                    </div>
+                  )}
 
                   <div className="turn">
                     <span>
@@ -502,7 +647,7 @@ export default function MonopolyBoard() {
                   </ol>
                 </div>
 
-                {/* Tokens */}
+                {/* Player Tokens */}
                 <div className="tokens">
                   {players.map((p) => {
                     const pos = posOf(p.position);
@@ -528,39 +673,54 @@ export default function MonopolyBoard() {
         </div>
       </main>
 
-      {/* Right Sidebar Inspector */}
+      {/* Right Sidebar Inspector (Visible when a country/state tile is tapped) */}
       <aside>
-        <section className="card">
-          <h2>Tile</h2>
-          <div className="ihead">
-            <div className="bigflag">
-              {selectedTile.countryCode && FLAGS[selectedTile.countryCode] ? (
-                FLAGS[selectedTile.countryCode]
-              ) : (
-                ART[selectedTile.type] || null
-              )}
+        {selectedTile ? (
+          <section className="card">
+            <h2>Tile Inspector</h2>
+            <div className="ihead">
+              <div className="bigflag">
+                {selectedTile.countryCode && FLAGS[selectedTile.countryCode] ? (
+                  FLAGS[selectedTile.countryCode]
+                ) : (
+                  ART[selectedTile.type] || null
+                )}
+              </div>
+              <div>
+                <h3>{selectedTile.name}</h3>
+                <p>{selectedTile.countryCode ? GROUPS[selectedTile.countryCode]?.name : "Special Tile"}</p>
+              </div>
             </div>
-            <div>
-              <h3>{selectedTile.name}</h3>
-              <p>{selectedTile.countryCode ? GROUPS[selectedTile.countryCode]?.name : "Special Tile"}</p>
-            </div>
-          </div>
 
-          <dl className="rows">
-            {selectedTile.price && (
-              <>
-                <dt>Price</dt>
-                <dd>${selectedTile.price}</dd>
-              </>
-            )}
-            {selectedPropData?.ownerId && (
-              <>
-                <dt>Owner</dt>
-                <dd>{players.find((p) => p.id === selectedPropData.ownerId)?.name}</dd>
-              </>
-            )}
-          </dl>
-        </section>
+            <dl className="rows">
+              {selectedTile.price && (
+                <>
+                  <dt>Price</dt>
+                  <dd>${selectedTile.price}</dd>
+                </>
+              )}
+              {selectedPropData?.ownerId && (
+                <>
+                  <dt>Owner</dt>
+                  <dd>{players.find((p) => p.id === selectedPropData.ownerId)?.name}</dd>
+                </>
+              )}
+              {selectedTile.rent && (
+                <>
+                  <dt>Base Rent</dt>
+                  <dd>${selectedTile.rent[0]}</dd>
+                </>
+              )}
+            </dl>
+          </section>
+        ) : (
+          <section className="card">
+            <h2>Tile Inspector</h2>
+            <p className="note" style={{ textAlign: "center", padding: "12px 0" }}>
+              Tap any state, country, or tile on the board to inspect its details!
+            </p>
+          </section>
+        )}
 
         <section className="card">
           <h2>Players</h2>
@@ -577,6 +737,18 @@ export default function MonopolyBoard() {
           </ul>
         </section>
       </aside>
+
+      {/* Property & Trade Modal */}
+      {modalProperty && (
+        <PropertyCardModal
+          property={modalProperty}
+          onClose={() => setModalProperty(null)}
+          currentPlayer={{ id: socket?.id, name: playerName }}
+          gameState={{ isMyTurn, currentPlayerId: currentTurnPlayer.id }}
+          onBuild={handleBuildHouse}
+          onMortgage={handleMortgage}
+        />
+      )}
     </div>
   );
 }
