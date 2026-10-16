@@ -11,10 +11,8 @@ export default function PropertyCardModal({
 }) {
   if (!property) return null;
 
-  // Rent breakdown schedule array [Base, 1H, 2H, 3H, 4H, Hotel]
   const rentList = property.rent || [35, 180, 550, 1150, 1350, 1525];
 
-  // Ownership & active turn validation
   const isOwner =
     property.ownerId === currentPlayer?.id ||
     property.owner === currentPlayer?.name;
@@ -22,7 +20,6 @@ export default function PropertyCardModal({
     gameState?.isMyTurn ||
     gameState?.currentPlayerId === currentPlayer?.id;
 
-  // Building eligibility: requires ownership of all cities in the country
   const canBuild =
     isOwner &&
     property.hasCountryMonopoly &&
@@ -32,7 +29,7 @@ export default function PropertyCardModal({
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div
-        className="property-card-modal"
+        className="property-card-modal card-3d-flip"
         onClick={(e) => e.stopPropagation()}
       >
         <button className="close-btn" onClick={onClose}>
@@ -68,7 +65,7 @@ export default function PropertyCardModal({
                 <span>with four houses</span>
                 <span>${rentList[4]}</span>
               </div>
-              <div className="rent-row">
+              <div className="rent-row highlight-hotel">
                 <span>with a hotel</span>
                 <span>${rentList[5]}</span>
               </div>
@@ -106,7 +103,6 @@ export default function PropertyCardModal({
               </p>
             )}
 
-            {/* Actions available when it's your turn and you own the property */}
             {isMyTurn && isOwner && (
               <div className="property-actions">
                 {canBuild && (
