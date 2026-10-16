@@ -214,8 +214,8 @@ const DEFAULT_BOARD = [
   { id: 1, name: "Salvador", countryCode: "BR", price: 60, type: "prop", rent: [2, 10, 30, 90, 160, 250], houseCost: 50 },
   { id: 2, name: "Treasure", type: "treasure" },
   { id: 3, name: "Rio", countryCode: "BR", price: 70, type: "prop", rent: [4, 20, 60, 180, 320, 450], houseCost: 50 },
-  { id: 4, name: "Earnings Tax", price: 200, type: "tax", amount: "10%" },
-  { id: 5, name: "TLV Airport", countryCode: "IL", price: 200, type: "airport" },
+  { id: 4, name: "Earnings Tax", price: 200, type: "tax", amount: 200 },
+  { id: 5, name: "TLV Airport", price: 200, type: "airport", rent: [25, 50, 100, 200] },
   { id: 6, name: "Tel Aviv", countryCode: "IL", price: 90, type: "prop", rent: [6, 30, 90, 270, 400, 550], houseCost: 50 },
   { id: 7, name: "Haifa", countryCode: "IL", price: 100, type: "prop", rent: [6, 30, 90, 270, 400, 550], houseCost: 50 },
   { id: 8, name: "Surprise", type: "surprise" },
@@ -225,7 +225,7 @@ const DEFAULT_BOARD = [
   { id: 12, name: "Power Company", price: 150, type: "utility", u: "power" },
   { id: 13, name: "Milan", countryCode: "IT", price: 140, type: "prop", rent: [10, 50, 150, 450, 625, 750], houseCost: 100 },
   { id: 14, name: "Rome", countryCode: "IT", price: 160, type: "prop", rent: [12, 60, 180, 500, 700, 900], houseCost: 100 },
-  { id: 15, name: "MUC Airport", countryCode: "DE", price: 200, type: "airport" },
+  { id: 15, name: "MUC Airport", price: 200, type: "airport", rent: [25, 50, 100, 200] },
   { id: 16, name: "Frankfurt", countryCode: "DE", price: 170, type: "prop", rent: [14, 70, 200, 550, 750, 950], houseCost: 100 },
   { id: 17, name: "Treasure", type: "treasure" },
   { id: 18, name: "Munich", countryCode: "DE", price: 190, type: "prop", rent: [14, 70, 200, 550, 750, 950], houseCost: 100 },
@@ -235,7 +235,7 @@ const DEFAULT_BOARD = [
   { id: 22, name: "Surprise", type: "surprise" },
   { id: 23, name: "Beijing", countryCode: "CN", price: 230, type: "prop", rent: [18, 90, 250, 700, 875, 1050], houseCost: 150 },
   { id: 24, name: "Shanghai", countryCode: "CN", price: 250, type: "prop", rent: [20, 100, 300, 750, 925, 1100], houseCost: 150 },
-  { id: 25, name: "CDG Airport", countryCode: "FR", price: 200, type: "airport" },
+  { id: 25, name: "CDG Airport", price: 200, type: "airport", rent: [25, 50, 100, 200] },
   { id: 26, name: "Lyon", countryCode: "FR", price: 260, type: "prop", rent: [22, 110, 330, 800, 975, 1150], houseCost: 150 },
   { id: 27, name: "Water Company", price: 150, type: "utility", u: "water" },
   { id: 28, name: "Toulouse", countryCode: "FR", price: 270, type: "prop", rent: [22, 110, 330, 800, 975, 1150], houseCost: 150 },
@@ -245,10 +245,10 @@ const DEFAULT_BOARD = [
   { id: 32, name: "Manchester", countryCode: "GB", price: 320, type: "prop", rent: [22, 110, 330, 800, 975, 1150], houseCost: 150 },
   { id: 33, name: "Treasure", type: "treasure" },
   { id: 34, name: "London", countryCode: "GB", price: 340, type: "prop", rent: [24, 120, 360, 850, 1025, 1200], houseCost: 150 },
-  { id: 35, name: "JFK Airport", countryCode: "US", price: 200, type: "airport" },
+  { id: 35, name: "JFK Airport", price: 200, type: "airport", rent: [25, 50, 100, 200] },
   { id: 36, name: "Surprise", type: "surprise" },
   { id: 37, name: "San Francisco", countryCode: "US", price: 360, type: "prop", rent: [35, 180, 550, 1150, 1350, 1525], houseCost: 200 },
-  { id: 38, name: "Premium Tax", price: 75, type: "tax", amount: "$75" },
+  { id: 38, name: "Premium Tax", price: 75, type: "tax", amount: 75 },
   { id: 39, name: "New York", countryCode: "US", price: 400, type: "prop", rent: [50, 200, 600, 1400, 1700, 2000], houseCost: 200 }
 ];
 
@@ -293,12 +293,12 @@ const getArtForTile = (tile) => {
   const name = tile.name?.toLowerCase() || "";
   const type = tile.type?.toLowerCase() || "";
 
-  if (type === "railroad" || name.includes("airport")) return ART.airport;
+  if (type === "railroad" || type === "airport" || name.includes("airport")) return ART.airport;
   if (type === "utility" || name.includes("water")) return ART.water;
   if (name.includes("power") || name.includes("electric")) return ART.power;
   if (type === "tax" || name.includes("tax")) return ART.tax;
-  if (type === "chest" || name.includes("treasure")) return ART.treasure;
-  if (type === "chance" || name.includes("surprise")) return ART.surprise;
+  if (type === "chest" || type === "treasure" || name.includes("treasure")) return ART.treasure;
+  if (type === "chance" || type === "surprise" || name.includes("surprise")) return ART.surprise;
   return null;
 };
 
@@ -313,7 +313,6 @@ export default function MonopolyBoard() {
   const [spinA, setSpinA] = useState([0, 0]);
   const [spinB, setSpinB] = useState([0, 0]);
   const [isRolling, setIsRolling] = useState(false);
-  const [bidAmount, setBidAmount] = useState("");
 
   useEffect(() => {
     socket = io(BACKEND_URL);
@@ -332,7 +331,6 @@ export default function MonopolyBoard() {
     return () => socket.disconnect();
   }, []);
 
-  // Keep the open property card in sync with the latest game state
   useEffect(() => {
     if (!modalProperty || !gameState) return;
     const propData = gameState.properties?.[modalProperty.id];
@@ -378,13 +376,11 @@ export default function MonopolyBoard() {
   const handleEndTurn = () => socket.emit("ACTION_END_TURN", { roomCode });
   const handlePayBail = () => socket.emit("ACTION_PAY_BAIL", { roomCode });
 
-  const handlePlaceBid = (e) => {
-    e.preventDefault();
-    if (bidAmount) {
-      socket.emit("ACTION_BID", { roomCode, amount: Number(bidAmount) });
-      setBidAmount("");
-    }
+  const handleQuickBid = (increment) => {
+    const currentBid = gameState?.auction?.currentBid || 0;
+    socket.emit("ACTION_BID", { roomCode, amount: currentBid + increment });
   };
+
   const handlePassBid = () => socket.emit("ACTION_PASS_BID", { roomCode });
 
   const handleBuildHouse = (tileId) => {
@@ -582,7 +578,6 @@ export default function MonopolyBoard() {
                     <i></i><i></i><div>{ART.treasure}</div><span>Treasure</span>
                   </div>
                   
-                  {/* Interactive Trade Deck */}
                   <div
                     className="deck"
                     style={{ left: "4cqw", top: "70cqh", "--r": "6deg", cursor: "pointer" }}
@@ -636,7 +631,7 @@ export default function MonopolyBoard() {
                         </div>
                       </div>
 
-                      {/* Explicit Action Controls */}
+                      {/* Controls */}
                       {isMyTurn && (
                         <div style={{ position: "absolute", bottom: "8%", left: "50%", transform: "translateX(-50%)", zIndex: 50, display: "flex", gap: "12px", alignItems: "center" }}>
                           {turnPhase === "AWAITING_ROLL" && (
@@ -701,19 +696,44 @@ export default function MonopolyBoard() {
                     </div>
                   </div>
 
-                  {/* Auction Modal Overlay */}
+                  {/* Quick-Bid Auction Overlay with Timer */}
                   {turnPhase === "AUCTION" && gameState?.auction && (
-                    <div style={{ position: "absolute", top: "45%", left: "50%", transform: "translate(-50%, -50%)", background: "#181433", padding: "14px 20px", borderRadius: "12px", border: "2px solid var(--gold)", zIndex: 60, textAlign: "center", boxShadow: "0 10px 30px rgba(0,0,0,0.8)" }}>
-                      <p style={{ color: "#ffe58a", fontWeight: "bold", marginBottom: "6px" }}>Auction Bid: ${gameState.auction.currentBid || 0}</p>
-                      
+                    <div style={{ position: "absolute", top: "45%", left: "50%", transform: "translate(-50%, -50%)", background: "#181433", padding: "16px 20px", borderRadius: "14px", border: "2px solid var(--gold)", zIndex: 60, textAlign: "center", boxShadow: "0 10px 30px rgba(0,0,0,0.8)", minWidth: "240px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                        <span style={{ color: "#ffe58a", fontWeight: "bold", fontSize: "1.05rem" }}>
+                          Current Bid: ${gameState.auction.currentBid || 0}
+                        </span>
+                        {gameState.auction.timeLeft !== undefined && (
+                          <span style={{ background: "#ef4444", color: "#fff", padding: "2px 8px", borderRadius: "10px", fontSize: "0.8rem", fontWeight: "bold" }}>
+                            ⏱️ {gameState.auction.timeLeft}s
+                          </span>
+                        )}
+                      </div>
+
                       {isMyAuctionBidTurn ? (
-                        <form onSubmit={handlePlaceBid} style={{ display: "flex", gap: "6px", justifyContent: "center", alignItems: "center" }}>
-                          <input type="number" placeholder="Bid" value={bidAmount} onChange={(e) => setBidAmount(e.target.value)} style={{ width: "80px", padding: "6px", borderRadius: "6px", border: "1px solid var(--line)", background: "#0b091a", color: "#fff" }} />
-                          <button type="submit" style={{ padding: "6px 12px", background: "var(--gold)", color: "#111", border: "none", borderRadius: "6px", fontWeight: "bold", cursor: "pointer" }}>Bid</button>
-                          <button type="button" onClick={handlePassBid} style={{ padding: "6px 12px", background: "#374151", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer" }}>Pass</button>
-                        </form>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                          <div style={{ display: "flex", gap: "6px", justifyContent: "center" }}>
+                            {[1, 10, 100].map((inc) => (
+                              <button
+                                key={inc}
+                                type="button"
+                                onClick={() => handleQuickBid(inc)}
+                                style={{ flex: 1, padding: "8px 0", background: "linear-gradient(180deg, #3b82f6, #1d4ed8)", color: "#fff", border: "none", borderRadius: "6px", fontWeight: "bold", cursor: "pointer", fontSize: "0.9rem" }}
+                              >
+                                +${inc}
+                              </button>
+                            ))}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handlePassBid}
+                            style={{ padding: "8px 0", background: "#374151", color: "#f3f4f6", border: "1px solid #4b5563", borderRadius: "6px", fontWeight: "bold", cursor: "pointer", fontSize: "0.9rem" }}
+                          >
+                            Pass 🚫
+                          </button>
+                        </div>
                       ) : (
-                        <p style={{ color: "#a5b4fc", fontSize: "0.85rem", margin: "4px 0" }}>
+                        <p style={{ color: "#a5b4fc", fontSize: "0.85rem", margin: "6px 0" }}>
                           Waiting for bidder...
                         </p>
                       )}
