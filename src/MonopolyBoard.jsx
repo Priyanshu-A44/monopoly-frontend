@@ -450,6 +450,7 @@ export default function MonopolyBoard() {
 
   const currentTurnPlayer = players[gameState?.turnIndex] || players[0] || {};
   const isMyTurn = currentTurnPlayer.id === socket?.id;
+  const isMyAuctionBidTurn = gameState?.auction?.currentBidder === socket?.id;
 
   const diceA = gameState?.currentDice?.[0] || 4;
   const diceB = gameState?.currentDice?.[1] || 3;
@@ -599,7 +600,7 @@ export default function MonopolyBoard() {
                         </div>
                       </div>
 
-                      {/* Dynamic Turn Action Overlay */}
+                      {/* Explicit Action Controls */}
                       {isMyTurn && (
                         <div style={{ position: "absolute", bottom: "8%", left: "50%", transform: "translateX(-50%)", zIndex: 50, display: "flex", gap: "8px" }}>
                           {turnPhase === "AWAITING_ROLL" && (
@@ -608,7 +609,7 @@ export default function MonopolyBoard() {
                             </button>
                           )}
 
-                          {(turnPhase === "ACTION_REQUIRED" || turnPhase === "AUCTION") && (
+                          {turnPhase === "ACTION_REQUIRED" && (
                             <>
                               <button 
                                 className="roll" 
@@ -647,12 +648,18 @@ export default function MonopolyBoard() {
                   {turnPhase === "AUCTION" && gameState?.auction && (
                     <div style={{ position: "absolute", top: "45%", left: "50%", transform: "translate(-50%, -50%)", background: "#181433", padding: "14px 20px", borderRadius: "12px", border: "2px solid var(--gold)", zIndex: 60, textAlign: "center", boxShadow: "0 10px 30px rgba(0,0,0,0.8)" }}>
                       <p style={{ color: "#ffe58a", fontWeight: "bold", marginBottom: "6px" }}>Auction Bid: ${gameState.auction.currentBid || 0}</p>
-                      <form onSubmit={handlePlaceBid} style={{ display: "flex", gap: "6px", justifyContent: "center", alignItems: "center" }}>
-                        <input type="number" placeholder="Bid" value={bidAmount} onChange={(e) => setBidAmount(e.target.value)} style={{ width: "80px", padding: "6px", borderRadius: "6px", border: "1px solid var(--line)", background: "#0b091a", color: "#fff" }} />
-                        <button type="submit" style={{ padding: "6px 12px", background: "var(--gold)", color: "#111", border: "none", borderRadius: "6px", fontWeight: "bold", cursor: "pointer" }}>Bid</button>
-                        <button type="button" onClick={handlePassBid} style={{ padding: "6px 12px", background: "#374151", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer" }}>Pass</button>
-                        <button type="button" onClick={handleEndTurn} style={{ padding: "6px 12px", background: "#dc2626", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer" }}>Skip</button>
-                      </form>
+                      
+                      {isMyAuctionBidTurn ? (
+                        <form onSubmit={handlePlaceBid} style={{ display: "flex", gap: "6px", justifyContent: "center", alignItems: "center" }}>
+                          <input type="number" placeholder="Bid" value={bidAmount} onChange={(e) => setBidAmount(e.target.value)} style={{ width: "80px", padding: "6px", borderRadius: "6px", border: "1px solid var(--line)", background: "#0b091a", color: "#fff" }} />
+                          <button type="submit" style={{ padding: "6px 12px", background: "var(--gold)", color: "#111", border: "none", borderRadius: "6px", fontWeight: "bold", cursor: "pointer" }}>Bid</button>
+                          <button type="button" onClick={handlePassBid} style={{ padding: "6px 12px", background: "#374151", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer" }}>Pass</button>
+                        </form>
+                      ) : (
+                        <p style={{ color: "#a5b4fc", fontSize: "0.85rem", margin: "4px 0" }}>
+                          Waiting for bidder...
+                        </p>
+                      )}
                     </div>
                   )}
 
