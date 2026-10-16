@@ -5,7 +5,6 @@ import "./MonopolyBoard.css";
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
 let socket;
 
-// Complete 40-Tile Board Fallback (Tile 20 = "Vacation")
 const DEFAULT_BOARD = [
   { id: 0, name: "START", type: "CORNER" },
   { id: 1, name: "Salvador", price: 60, colorGroup: "#8b5cf6", countryCode: "BR", type: "PROPERTY", houseCost: 50, rent: [2, 10, 30, 90, 160, 250] },
@@ -38,7 +37,7 @@ const DEFAULT_BOARD = [
   { id: 28, name: "Water Works", price: 150, type: "UTILITY" },
   { id: 29, name: "London", price: 280, colorGroup: "#e11d48", countryCode: "GB", type: "PROPERTY", houseCost: 150, rent: [24, 120, 360, 850, 1025, 1200] },
   { id: 30, name: "Go To Prison", type: "CORNER" },
-  { id: 31, name: "San Francisco", price: 300, colorGroup: "#ef4444", countryCode: "US", type: "PROPERTY", houseCost: 200, rent: [26, 130, 390, 900, 1100, 1275] },
+  { id: 31, name: "San Francisco", price: 300, colorGroup: "#ef4444", countryCode: "US", type: "PROPERTY", houseCost: 200, rent: [35, 180, 550, 1150, 1350, 1525] },
   { id: 32, name: "Seattle", price: 300, colorGroup: "#ef4444", countryCode: "US", type: "PROPERTY", houseCost: 200, rent: [26, 130, 390, 900, 1100, 1275] },
   { id: 33, name: "Community Chest", type: "CHEST" },
   { id: 34, name: "New York", price: 320, colorGroup: "#ef4444", countryCode: "US", type: "PROPERTY", houseCost: 200, rent: [28, 150, 450, 1000, 1200, 1400] },
@@ -49,7 +48,6 @@ const DEFAULT_BOARD = [
   { id: 39, name: "Tokyo", price: 400, colorGroup: "#6366f1", countryCode: "JP", type: "PROPERTY", houseCost: 200, rent: [50, 200, 600, 1400, 1700, 2000] }
 ];
 
-// Returns visual icons for non-country properties and special tiles
 const getTileIcon = (tile) => {
   if (!tile) return null;
   const name = tile.name?.toLowerCase() || "";
@@ -69,7 +67,6 @@ const getTileIcon = (tile) => {
   return null;
 };
 
-// Symmetrical 40-Tile Grid Position Mapping (11x11 Grid)
 const getTileGridStyle = (index) => {
   if (index >= 0 && index <= 10) {
     return { gridColumn: 11 - index, gridRow: 11 };
@@ -114,7 +111,6 @@ export default function MonopolyBoard() {
     };
   }, []);
 
-  // Smooth Walking Token Animation Engine
   useEffect(() => {
     if (!gameState?.players) return;
 
@@ -240,7 +236,6 @@ export default function MonopolyBoard() {
   const currentTurnPlayer = players[gameState?.turnIndex] || players[0] || {};
   const isMyTurn = currentTurnPlayer.id === socket?.id;
 
-  // Helper function to check if the current user owns every city in a given country
   const hasFullCountry = (countryCode) => {
     if (!countryCode) return false;
     const countryTiles = board.filter((t) => t.countryCode === countryCode);
@@ -259,7 +254,7 @@ export default function MonopolyBoard() {
     return (
       <div
         key={tileIndex}
-        className={`tile ${tile?.type || ""} ${propData?.isMortgaged ? "mortgaged" : ""}`}
+        className={`tile ${tile?.type || ""} ${propData?.isMortgaged ? "mortgaged" : ""} ${selectedTile?.id === tile.id ? "active-selected" : ""}`}
         style={getTileGridStyle(tileIndex)}
         onClick={() => setSelectedTile(tile)}
       >
@@ -284,7 +279,6 @@ export default function MonopolyBoard() {
           <div className="tile-name">{tile?.name}</div>
           {tile?.price && <div className="tile-price">${tile.price}</div>}
 
-          {/* Color-Coded Property Owner Badge */}
           {owner && (
             <div
               className="owner-badge"
@@ -293,7 +287,6 @@ export default function MonopolyBoard() {
             />
           )}
 
-          {/* Houses & Hotels Display */}
           {houses > 0 && (
             <div className="houses-container">
               {houses === 5 ? (
@@ -314,7 +307,8 @@ export default function MonopolyBoard() {
 
   const selectedTilePropData = selectedTile ? properties[selectedTile.id] : null;
   const selectedTileOwner = selectedTilePropData ? players.find((p) => p.id === selectedTilePropData.ownerId) : null;
-  const selectedTileRent = selectedTile?.rent || [10, 50, 150, 450, 625, 750];
+  const selectedTileRent = selectedTile?.rent || [35, 180, 550, 1150, 1350, 1525];
+  const isOwnerOfSelected = selectedTilePropData?.ownerId === socket?.id;
 
   return (
     <div className="game-wrapper">
@@ -425,84 +419,70 @@ export default function MonopolyBoard() {
             </div>
           );
         })}
-      </div>
 
-      {/* 3. Property Details Modal Popup */}
-      {selectedTile && (
-        <div className="tile-modal-overlay" onClick={() => setSelectedTile(null)}>
-          <div className="tile-card-modal" onClick={(e) => e.stopPropagation()}>
-            <button className="close-modal-btn" onClick={() => setSelectedTile(null)}>✕</button>
+        {/* 3. Slide-In Property Details Popup Drawer (Exact UI Match) */}
+        {selectedTile && (
+          <div className="slide-card-drawer slide-up-anim" onClick={(e) => e.stopPropagation()}>
+            <button className="close-slide-btn" onClick={() => setSelectedTile(null)}>✕</button>
 
-            <div className="modal-header">
-              {selectedTile.countryCode && (
-                <img
-                  src={`https://flagcdn.com/w40/${selectedTile.countryCode.toLowerCase()}.png`}
-                  alt=""
-                  className="modal-flag"
-                />
-              )}
+            <div className="slide-card-header">
               <h2>{selectedTile.name}</h2>
             </div>
 
             {selectedTile.type === "PROPERTY" ? (
               <>
-                <div className="rent-table-header">
+                <div className="rent-header-row">
                   <span>when</span>
                   <span>get</span>
                 </div>
 
-                <div className="rent-breakdown">
-                  <div className="rent-row"><span>with rent</span><strong>${selectedTileRent[0]}</strong></div>
-                  <div className="rent-row"><span>with one house</span><strong>${selectedTileRent[1]}</strong></div>
-                  <div className="rent-row"><span>with two houses</span><strong>${selectedTileRent[2]}</strong></div>
-                  <div className="rent-row"><span>with three houses</span><strong>${selectedTileRent[3]}</strong></div>
-                  <div className="rent-row"><span>with four houses</span><strong>${selectedTileRent[4]}</strong></div>
-                  <div className="rent-row highlight"><span>with a hotel</span><strong>${selectedTileRent[5]}</strong></div>
+                <div className="rent-list">
+                  <div className="rent-item"><span>with rent</span> <strong>${selectedTileRent[0]}</strong></div>
+                  <div className="rent-item"><span>with one house</span> <strong>${selectedTileRent[1]}</strong></div>
+                  <div className="rent-item"><span>with two houses</span> <strong>${selectedTileRent[2]}</strong></div>
+                  <div className="rent-item"><span>with three houses</span> <strong>${selectedTileRent[3]}</strong></div>
+                  <div className="rent-item"><span>with four houses</span> <strong>${selectedTileRent[4]}</strong></div>
+                  <div className="rent-item"><span>with a hotel</span> <strong>${selectedTileRent[5]}</strong></div>
                 </div>
 
-                <div className="modal-cost-footer">
-                  <div className="cost-box">
-                    <span className="cost-label">Price</span>
-                    <strong className="cost-val">${selectedTile.price}</strong>
+                <div className="slide-cost-footer">
+                  <div className="cost-column">
+                    <span className="cost-title">Price</span>
+                    <span className="cost-value">${selectedTile.price}</span>
                   </div>
-                  <div className="cost-box">
-                    <span className="cost-label">🏠 House</span>
-                    <strong className="cost-val">${selectedTile.houseCost || 100}</strong>
+                  <div className="cost-column">
+                    <span className="cost-title">🏠</span>
+                    <span className="cost-value">${selectedTile.houseCost || 200}</span>
                   </div>
-                  <div className="cost-box">
-                    <span className="cost-label">🏨 Hotel</span>
-                    <strong className="cost-val">${selectedTile.houseCost || 100}</strong>
+                  <div className="cost-column">
+                    <span className="cost-title">🏨</span>
+                    <span className="cost-value">${selectedTile.houseCost || 200}</span>
                   </div>
                 </div>
 
-                <div className="modal-owner-info">
-                  {selectedTileOwner ? (
-                    <p>
-                      Owned by <strong style={{ color: selectedTileOwner.color }}>{selectedTileOwner.name}</strong>
-                      {selectedTilePropData?.isMortgaged ? " (Mortgaged)" : ""}
-                    </p>
-                  ) : (
-                    <p className="unowned-text">Unowned Property</p>
-                  )}
-                </div>
+                {selectedTileOwner && (
+                  <div className="owner-status-bar">
+                    Owned by <strong style={{ color: selectedTileOwner.color }}>{selectedTileOwner.name}</strong>
+                    {selectedTilePropData?.isMortgaged ? " (Mortgaged)" : ""}
+                  </div>
+                )}
 
-                {isMyTurn && selectedTilePropData?.ownerId === socket?.id && (
-                  <div className="modal-actions">
-                    {/* Build Button - Only enabled when player owns the entire country */}
+                {/* Owner Options: House Building & Mortgaging */}
+                {isMyTurn && isOwnerOfSelected && (
+                  <div className="owner-action-group">
                     {hasFullCountry(selectedTile.countryCode) && !selectedTilePropData?.isMortgaged && (selectedTilePropData?.houses || 0) < 5 && (
                       <button
-                        className="modal-btn btn-build"
+                        className="slide-action-btn build-btn"
                         onClick={() => handleBuildHouse(selectedTile.id)}
                       >
-                        Build {(selectedTilePropData?.houses || 0) === 4 ? "Hotel 🏨" : "House 🏠"} (${selectedTile.houseCost || 100})
+                        Build {(selectedTilePropData?.houses || 0) === 4 ? "Hotel 🏨" : "House 🏠"} (${selectedTile.houseCost || 200})
                       </button>
                     )}
 
-                    {/* Mortgage / Unmortgage Buttons */}
                     {!selectedTilePropData?.isMortgaged ? (
                       (selectedTilePropData?.houses || 0) === 0 && (
                         <button
-                          className="modal-btn btn-mortgage"
+                          className="slide-action-btn mortgage-btn"
                           onClick={() => handleMortgage(selectedTile.id)}
                         >
                           Mortgage (+${Math.round(selectedTile.price / 2)})
@@ -510,7 +490,7 @@ export default function MonopolyBoard() {
                       )
                     ) : (
                       <button
-                        className="modal-btn btn-unmortgage"
+                        className="slide-action-btn unmortgage-btn"
                         onClick={() => handleUnmortgage(selectedTile.id)}
                       >
                         Unmortgage (-${Math.round((selectedTile.price / 2) * 1.1)})
@@ -520,14 +500,14 @@ export default function MonopolyBoard() {
                 )}
               </>
             ) : (
-              <div className="special-tile-info">
+              <div className="special-tile-body">
                 <div className="tile-icon-large">{getTileIcon(selectedTile)}</div>
                 <p>{selectedTile.type || "SPECIAL TILE"}</p>
               </div>
             )}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* 4. Sidebar */}
       <div className="sidebar">
