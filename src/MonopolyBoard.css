@@ -1,20 +1,24 @@
 /* ==========================================================================
-   1. Base Resets & Global Styles
+   1. Global Theme & Reset
    ========================================================================== */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-family: 'Poppins', 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
 
 body {
-  background-color: #0b0b16;
+  background-color: #080811;
   color: #ffffff;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 /* ==========================================================================
-   2. Pre-Game Lobby & Waiting Room
+   2. Pre-Game Lobby
    ========================================================================== */
 .lobby-container {
   display: flex;
@@ -22,21 +26,16 @@ body {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background-color: #0d0c1d;
+  background-color: #0b0b16;
   color: #ffffff;
   padding: 20px;
 }
 
 .lobby-container h2 {
   margin-bottom: 20px;
-  font-size: 2rem;
+  font-size: 2.2rem;
+  font-weight: 700;
   letter-spacing: 1px;
-}
-
-.lobby-container h3 {
-  margin-top: 10px;
-  margin-bottom: 10px;
-  color: #a5b4fc;
 }
 
 .lobby-container form {
@@ -47,10 +46,10 @@ body {
 }
 
 .lobby-container input {
-  padding: 12px 16px;
-  border-radius: 8px;
-  border: 1px solid #333252;
-  background: #1a192e;
+  padding: 14px 18px;
+  border-radius: 12px;
+  border: 1px solid #2d2b52;
+  background: #141329;
   color: #ffffff;
   font-size: 1rem;
   outline: none;
@@ -62,43 +61,32 @@ body {
 }
 
 .lobby-container button {
-  padding: 12px;
-  border-radius: 8px;
+  padding: 14px;
+  border-radius: 12px;
   border: none;
-  background: #4f46e5;
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
   color: #ffffff;
-  font-weight: bold;
+  font-weight: 700;
   font-size: 1rem;
   cursor: pointer;
-  transition: background 0.2s, transform 0.1s;
+  transition: transform 0.15s, box-shadow 0.2s;
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
 }
 
 .lobby-container button:hover {
-  background: #4338ca;
-  transform: translateY(-1px);
-}
-
-.lobby-container ul {
-  list-style: none;
-  margin-bottom: 20px;
-  text-align: center;
-}
-
-.lobby-container li {
-  font-size: 1.2rem;
-  margin: 6px 0;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
 }
 
 /* ==========================================================================
-   3. Main Game Layout & Board Grid
+   3. Main Board Arena & Frame
    ========================================================================== */
 .game-wrapper {
   display: flex;
-  gap: 24px;
-  padding: 24px;
-  max-width: 1350px;
+  gap: 30px;
+  padding: 30px;
+  max-width: 1400px;
   margin: 0 auto;
-  min-height: 100vh;
   align-items: flex-start;
 }
 
@@ -106,153 +94,201 @@ body {
   display: grid;
   grid-template-columns: repeat(11, 1fr);
   grid-template-rows: repeat(11, 1fr);
-  width: 750px;
-  height: 750px;
-  background-color: #141326;
-  border: 3px solid #252342;
-  border-radius: 12px;
+  width: 800px;
+  height: 800px;
+  background-color: #121124;
+  border: 12px solid #1c1a33;
+  border-radius: 20px;
   position: relative;
-  gap: 2px;
-  padding: 2px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  gap: 3px;
+  padding: 3px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(99, 102, 241, 0.15);
 }
 
+/* Golden Circular Center Arena */
 .board-center {
   grid-column: 2 / 11;
   grid-row: 2 / 11;
-  background-color: #0f0e20;
+  background: radial-gradient(circle at center, #18162e 0%, #0d0c1a 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
-  padding: 20px;
-  text-align: center;
+  border-radius: 50%;
+  border: 6px solid #d4af37;
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.8), 0 0 25px rgba(212, 175, 55, 0.3);
+  margin: 35px;
+  position: relative;
   z-index: 5;
 }
 
 .board-center h1 {
-  font-size: 2.6rem;
-  margin-bottom: 15px;
-  letter-spacing: 2px;
-  color: #ffffff;
+  font-size: 1.8rem;
+  font-weight: 800;
+  letter-spacing: 3px;
+  color: #f3f4f6;
+  text-transform: uppercase;
+  margin-bottom: 10px;
 }
 
 .dice-display {
-  font-size: 1.8rem;
-  font-weight: bold;
+  font-size: 2.2rem;
+  font-weight: 800;
   margin-bottom: 15px;
-  background: #1d1b38;
-  padding: 8px 24px;
-  border-radius: 20px;
-  border: 1px solid #363260;
+  background: #1e1c3a;
+  padding: 10px 28px;
+  border-radius: 30px;
+  border: 1px solid #3d396b;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+  color: #ffffff;
 }
 
 .turn-indicator {
-  font-size: 1.15rem;
-  margin-bottom: 20px;
+  font-size: 1.05rem;
+  margin-bottom: 15px;
   color: #a5b4fc;
 }
 
-.action-buttons button {
-  padding: 10px 20px;
-  border-radius: 6px;
+.emote-bar {
+  display: flex;
+  gap: 8px;
+  background: #1c1a36;
+  padding: 6px 14px;
+  border-radius: 25px;
+  border: 1px solid #363260;
+  margin-bottom: 15px;
+}
+
+.emote-bar button {
+  background: transparent;
   border: none;
-  background-color: #10b981;
-  color: #ffffff;
-  font-weight: bold;
-  font-size: 0.95rem;
+  font-size: 1.3rem;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: transform 0.15s;
+}
+
+.emote-bar button:hover {
+  transform: scale(1.35);
+}
+
+.action-buttons button {
+  padding: 12px 24px;
+  border-radius: 25px;
+  border: none;
+  background: linear-gradient(135deg, #eab308, #ca8a04);
+  color: #111827;
+  font-weight: 800;
+  font-size: 1rem;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(234, 179, 8, 0.4);
+  transition: transform 0.15s, box-shadow 0.2s;
 }
 
 .action-buttons button:hover {
-  background-color: #059669;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(234, 179, 8, 0.6);
 }
 
 /* ==========================================================================
-   4. Board Tiles, Flags & Badges
+   4. High-Quality Custom Board Tiles
    ========================================================================== */
 .tile {
-  background-color: #1a1833;
-  border: 1px solid #2a274d;
+  background: linear-gradient(145deg, #1d1b38, #16142c);
+  border: 1px solid #2b2852;
   position: relative;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  font-size: 0.7rem;
-  text-align: center;
-  border-radius: 2px;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 8px;
+  padding: 5px 3px;
   cursor: pointer;
-  transition: border-color 0.15s, transform 0.1s;
+  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+  overflow: hidden;
 }
 
-.tile:hover, .tile.active-selected {
+.tile:hover {
   border-color: #818cf8;
+  box-shadow: 0 0 15px rgba(129, 140, 248, 0.5);
+  transform: scale(1.03);
   z-index: 15;
 }
 
 .tile.mortgaged {
-  opacity: 0.65;
+  opacity: 0.5;
+  filter: grayscale(0.8);
 }
 
+/* Property Color Indicator Blocks */
 .tile-color-bar {
-  height: 14px;
   width: 100%;
+  height: 12px;
+  border-radius: 4px;
+  box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .tile-content {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  padding: 4px 2px;
+  justify-content: center;
   height: 100%;
-  position: relative;
+  width: 100%;
+  gap: 2px;
 }
 
-.tile-flag {
-  width: 22px;
-  height: 14px;
+/* Circular High-Res Flag Styling */
+.tile-flag-circle {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
   object-fit: cover;
-  border-radius: 2px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
-  margin-bottom: 3px;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+  margin-top: 2px;
 }
 
 .tile-icon {
-  font-size: 1.1rem;
+  font-size: 1.3rem;
   line-height: 1;
-  margin-bottom: 2px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
 }
 
 .tile-name {
-  font-weight: 600;
-  color: #e2e8f0;
-  font-size: 0.65rem;
+  font-weight: 700;
+  color: #f3f4f6;
+  font-size: 0.62rem;
+  text-align: center;
   line-height: 1.1;
-  margin-bottom: 2px;
+  word-break: break-word;
 }
 
 .tile-price {
-  color: #94a3b8;
+  color: #9ca3af;
   font-size: 0.6rem;
+  font-weight: 600;
+}
+
+/* Owner Indicators & Badges */
+.glow-owner {
+  box-shadow: 0 0 8px currentColor;
 }
 
 .owner-badge {
   position: absolute;
-  bottom: 2px;
-  right: 2px;
-  width: 9px;
-  height: 9px;
+  top: 4px;
+  right: 4px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  border: 1px solid #ffffff;
+  border: 1.5px solid #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
 }
 
 .houses-container {
   position: absolute;
-  bottom: 2px;
-  left: 2px;
+  bottom: 3px;
+  left: 3px;
   display: flex;
   gap: 1px;
   font-size: 0.6rem;
@@ -260,23 +296,24 @@ body {
 
 .mortgage-tag {
   font-size: 0.45rem;
-  font-weight: bold;
+  font-weight: 800;
   color: #ef4444;
-  background: rgba(0, 0, 0, 0.8);
-  padding: 1px 3px;
+  background: rgba(0, 0, 0, 0.85);
+  padding: 1px 4px;
+  border-radius: 3px;
   position: absolute;
-  top: 14px;
+  top: 16px;
 }
 
 /* ==========================================================================
-   5. Animated Character Player Tokens
+   5. Googly-Eyed Tokens
    ========================================================================== */
 .player-character-token {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   border: 2px solid #ffffff;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.8), inset 0 -3px 4px rgba(0, 0, 0, 0.3);
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -285,7 +322,7 @@ body {
 .character-eyes {
   display: flex;
   gap: 2px;
-  margin-top: 3px;
+  margin-top: 4px;
 }
 
 .eye {
@@ -306,8 +343,21 @@ body {
   margin-top: 1px;
 }
 
+.floating-emote-bubble {
+  position: absolute;
+  top: -26px;
+  font-size: 1.4rem;
+  animation: floatUp 1.8s ease-out forwards;
+}
+
+@keyframes floatUp {
+  0% { opacity: 0; transform: translateY(0); }
+  20% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-30px); }
+}
+
 /* ==========================================================================
-   6. Sidebar Controls & Game Logs
+   6. Sidebar Widgets
    ========================================================================== */
 .sidebar {
   width: 320px;
@@ -317,25 +367,34 @@ body {
 }
 
 .player-list, .game-log {
-  background: #141326;
-  border: 1px solid #252342;
-  border-radius: 10px;
-  padding: 16px;
+  background: #121124;
+  border: 1px solid #2b2852;
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+}
+
+.player-list h3, .game-log h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: #a5b4fc;
 }
 
 .player-card {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px;
-  background: #1c1a36;
-  border-radius: 6px;
+  gap: 12px;
+  padding: 10px 12px;
+  background: #1a1835;
+  border-radius: 10px;
   margin-bottom: 8px;
+  border: 1px solid #2d2a54;
 }
 
 .player-dot {
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
 }
 
@@ -349,8 +408,8 @@ body {
 
 .log-entry {
   font-size: 0.85rem;
-  color: #cbd5e1;
-  padding: 6px;
-  background: #1c1a36;
-  border-radius: 4px;
+  color: #d1d5db;
+  padding: 8px;
+  background: #1a1835;
+  border-radius: 6px;
 }
