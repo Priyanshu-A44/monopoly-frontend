@@ -1,8 +1,9 @@
-import React from 'react';
-import MonopolyBoard from "./MonopolyBoard.jsx";
+import MonopolyBoard from './MonopolyBoard'
 
 function App() {
-  return <MonopolyBoard />;
+  return (
+    <MonopolyBoard />
+  )
 }
 
-export default App;
+export default App
