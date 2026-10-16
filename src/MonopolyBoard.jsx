@@ -317,8 +317,6 @@ export default function MonopolyBoard() {
       setIsRolling(false);
     });
 
-    socket.on("ERROR", (errMsg) => alert(errMsg));
-
     return () => socket.disconnect();
   }, []);
 
@@ -480,7 +478,6 @@ export default function MonopolyBoard() {
 
                     const isSelected = selectedTileIndex === i;
                     const tileTypeLower = (tile.type || "").toLowerCase();
-                    const nameLower = (tile.name || "").toLowerCase();
                     const isCorner = i === 0 || i === 10 || i === 20 || i === 30 || tileTypeLower === "corner";
 
                     return (
@@ -604,19 +601,27 @@ export default function MonopolyBoard() {
 
                       {/* Dynamic Turn Action Overlay */}
                       {isMyTurn && (
-                        <div style={{ position: "absolute", bottom: "10%", left: "50%", transform: "translateX(-50%)", zIndex: 50, display: "flex", gap: "6px" }}>
+                        <div style={{ position: "absolute", bottom: "8%", left: "50%", transform: "translateX(-50%)", zIndex: 50, display: "flex", gap: "8px" }}>
                           {turnPhase === "AWAITING_ROLL" && (
                             <button className="roll" type="button" onClick={handleRollDice}>
                               {currentTurnPlayer.inJail ? "Roll Doubles 🎲" : "Roll the dice"}
                             </button>
                           )}
 
-                          {turnPhase === "ACTION_REQUIRED" && (
+                          {(turnPhase === "ACTION_REQUIRED" || turnPhase === "AUCTION") && (
                             <>
-                              <button className="roll" style={{ background: "#10b981", width: "auto", padding: "0 12px" }} onClick={handleBuyProperty}>
+                              <button 
+                                className="roll" 
+                                style={{ background: "linear-gradient(180deg, #10b981, #059669)", width: "auto", padding: "0 16px" }} 
+                                onClick={handleBuyProperty}
+                              >
                                 Buy 🏠
                               </button>
-                              <button className="roll" style={{ background: "#ef4444", width: "auto", padding: "0 12px" }} onClick={handleDeclineProperty}>
+                              <button 
+                                className="roll" 
+                                style={{ background: "linear-gradient(180deg, #ef4444, #dc2626)", width: "auto", padding: "0 16px" }} 
+                                onClick={handleDeclineProperty}
+                              >
                                 Auction 🔨
                               </button>
                             </>
@@ -638,13 +643,15 @@ export default function MonopolyBoard() {
                     </div>
                   </div>
 
+                  {/* Auction Modal Overlay */}
                   {turnPhase === "AUCTION" && gameState?.auction && (
-                    <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", background: "#181433", padding: "12px", borderRadius: "10px", border: "1px solid var(--gold)", zIndex: 60, textAlign: "center" }}>
-                      <p>Auction Bid: ${gameState.auction.currentBid || 0}</p>
-                      <form onSubmit={handlePlaceBid} style={{ display: "flex", gap: "4px", marginTop: "6px" }}>
-                        <input type="number" placeholder="Bid" value={bidAmount} onChange={(e) => setBidAmount(e.target.value)} style={{ width: "70px", padding: "4px" }} />
-                        <button type="submit" style={{ padding: "4px 8px" }}>Bid</button>
-                        <button type="button" onClick={handlePassBid} style={{ padding: "4px 8px" }}>Pass</button>
+                    <div style={{ position: "absolute", top: "45%", left: "50%", transform: "translate(-50%, -50%)", background: "#181433", padding: "14px 20px", borderRadius: "12px", border: "2px solid var(--gold)", zIndex: 60, textAlign: "center", boxShadow: "0 10px 30px rgba(0,0,0,0.8)" }}>
+                      <p style={{ color: "#ffe58a", fontWeight: "bold", marginBottom: "6px" }}>Auction Bid: ${gameState.auction.currentBid || 0}</p>
+                      <form onSubmit={handlePlaceBid} style={{ display: "flex", gap: "6px", justifyContent: "center", alignItems: "center" }}>
+                        <input type="number" placeholder="Bid" value={bidAmount} onChange={(e) => setBidAmount(e.target.value)} style={{ width: "80px", padding: "6px", borderRadius: "6px", border: "1px solid var(--line)", background: "#0b091a", color: "#fff" }} />
+                        <button type="submit" style={{ padding: "6px 12px", background: "var(--gold)", color: "#111", border: "none", borderRadius: "6px", fontWeight: "bold", cursor: "pointer" }}>Bid</button>
+                        <button type="button" onClick={handlePassBid} style={{ padding: "6px 12px", background: "#374151", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer" }}>Pass</button>
+                        <button type="button" onClick={handleEndTurn} style={{ padding: "6px 12px", background: "#dc2626", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer" }}>Skip</button>
                       </form>
                     </div>
                   )}
@@ -688,7 +695,7 @@ export default function MonopolyBoard() {
         </div>
       </main>
 
-      {/* Right Sidebar Inspector (Tapping any tile shows its card) */}
+      {/* Right Sidebar Inspector */}
       <aside>
         {selectedTile ? (
           <section className="card">
