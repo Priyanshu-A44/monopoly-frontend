@@ -130,6 +130,12 @@ const FLAGS = {
         )}
       </g>
     </>
+  ),
+  JP: fsvg(
+    <>
+      <rect width="60" height="60" fill="#ffffff" />
+      <circle cx="30" cy="30" r="18" fill="#bc002d" />
+    </>
   )
 };
 
@@ -199,7 +205,8 @@ const GROUPS = {
   CN: { name: "China", color: "#ff8a3d" },
   FR: { name: "France", color: "#b57cff" },
   GB: { name: "United Kingdom", color: "#ff7ccf" },
-  US: { name: "United States", color: "#35e0d2" }
+  US: { name: "United States", color: "#35e0d2" },
+  JP: { name: "Japan", color: "#6366f1" }
 };
 
 const DEFAULT_BOARD = [
@@ -631,17 +638,22 @@ export default function MonopolyBoard() {
 
                       {/* Explicit Action Controls */}
                       {isMyTurn && (
-                        <div style={{ position: "absolute", bottom: "8%", left: "50%", transform: "translateX(-50%)", zIndex: 50, display: "flex", gap: "8px" }}>
+                        <div style={{ position: "absolute", bottom: "8%", left: "50%", transform: "translateX(-50%)", zIndex: 50, display: "flex", gap: "12px", alignItems: "center" }}>
                           {turnPhase === "AWAITING_ROLL" && (
                             <>
-                              <button className="roll" type="button" onClick={handleRollDice}>
+                              <button 
+                                className="roll" 
+                                type="button" 
+                                style={{ position: "relative", transform: "none", top: "auto", left: "auto" }}
+                                onClick={handleRollDice}
+                              >
                                 {currentTurnPlayer.inJail ? "Roll Doubles 🎲" : "Roll the dice"}
                               </button>
                               {currentTurnPlayer.inJail && (
                                 <button
                                   className="roll"
                                   type="button"
-                                  style={{ background: "linear-gradient(180deg, #f59e0b, #d97706)" }}
+                                  style={{ position: "relative", transform: "none", top: "auto", left: "auto", background: "linear-gradient(180deg, #f59e0b, #d97706)", width: "auto", padding: "0 16px" }}
                                   onClick={handlePayBail}
                                 >
                                   Pay $50 🔓
@@ -654,14 +666,14 @@ export default function MonopolyBoard() {
                             <>
                               <button 
                                 className="roll" 
-                                style={{ background: "linear-gradient(180deg, #10b981, #059669)", width: "auto", padding: "0 16px" }} 
+                                style={{ position: "relative", transform: "none", top: "auto", left: "auto", background: "linear-gradient(180deg, #10b981, #059669)", width: "auto", padding: "0 16px" }} 
                                 onClick={handleBuyProperty}
                               >
                                 Buy 🏠
                               </button>
                               <button 
                                 className="roll" 
-                                style={{ background: "linear-gradient(180deg, #ef4444, #dc2626)", width: "auto", padding: "0 16px" }} 
+                                style={{ position: "relative", transform: "none", top: "auto", left: "auto", background: "linear-gradient(180deg, #ef4444, #dc2626)", width: "auto", padding: "0 16px" }} 
                                 onClick={handleDeclineProperty}
                               >
                                 Auction 🔨
@@ -670,7 +682,11 @@ export default function MonopolyBoard() {
                           )}
 
                           {turnPhase === "AWAITING_END_TURN" && (
-                            <button className="roll" onClick={handleEndTurn}>
+                            <button 
+                              className="roll" 
+                              style={{ position: "relative", transform: "none", top: "auto", left: "auto" }}
+                              onClick={handleEndTurn}
+                            >
                               End Turn ⌛
                             </button>
                           )}
