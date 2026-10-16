@@ -1,101 +1,99 @@
 import React from "react";
+import "./PropertyCardModal.css";
 
-const RENT_LABELS = ["Base rent", "1 house", "2 houses", "3 houses", "4 houses", "Hotel"];
-const AIRPORT_LABELS = ["1 airport", "2 airports", "3 airports", "4 airports"];
-
-export default function PropertyCardModal({ property, onClose, currentPlayer, gameState, onBuild, onMortgage }) {
+export default function PropertyCardModal({
+  property,
+  onClose,
+  currentPlayer,
+  gameState,
+  onBuild,
+  onMortgage
+}) {
   if (!property) return null;
 
-  const ownable = ["prop", "airport", "utility"].includes(property.type);
-  const isOwner = !!property.ownerId && property.ownerId === currentPlayer?.id;
-  const canAct = isOwner && gameState?.isMyTurn;
-  const houses = property.houses || 0;
-  const isCity = property.type === "prop";
+  const typeLower = (property.type || "").toLowerCase();
+  const isOwnable = ["prop", "property", "utility", "airport", "railroad"].includes(typeLower);
 
-  const mortgageValue = Math.round((property.price || 0) / 2);
-  const unmortgageCost = Math.round(mortgageValue * 1.1);
-  const labels = property.type === "airport" ? AIRPORT_LABELS : RENT_LABELS;
+  if (!isOwnable) {
+    return (
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <button className="modal-close" onClick={onClose}>×</button>
+          <h2>{property.name}</h2>
+          <p style={{ margin: "20px 0", color: "#9ca3af", textAlign: "center" }}>
+            This is a special tile and cannot be owned.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const isOwner = property.ownerId === currentPlayer?.id;
+  const canInteract = gameState?.isMyTurn && isOwner;
 
   return (
-    <div className="pcm-overlay" onClick={onClose}>
-      <div className="pcm-card" onClick={(e) => e.stopPropagation()}>
-        <div className="pcm-head">
-          <button className="pcm-close" onClick={onClose} aria-label="Close">✕</button>
-          <h3>{property.name}</h3>
-          {property.price ? <small>Price ${property.price}</small> : null}
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose}>×</button>
+        
+        <div className="modal-header" style={{ borderBottom: `4px solid ${property.ownerColor || "#3b82f6"}` }}>
+          <h2>{property.name}</h2>
+          <p>{property.countryCode ? `Country: ${property.countryCode}` : "Utility / Facility"}</p>
         </div>
 
-        <div className="pcm-body">
-          {!ownable && <p className="pcm-note">This is a special tile and cannot be owned.</p>}
+        <div className="modal-body">
+          <div className="info-row">
+            <span>Purchase Price:</span>
+            <strong>${property.price || 150}</strong>
+          </div>
 
-          {ownable && (
-            <>
-              <div className="pcm-owner">
-                {property.ownerId ? (
-                  <>
-                    <span className="pcm-dot" style={{ background: property.ownerColor || "#888" }} />
-                    Owned by <b>{property.ownerName}</b>
-                  </>
-                ) : (
-                  "Unowned"
-                )}
-                {property.isMortgaged && <span className="pcm-badge">MORTGAGED</span>}
-              </div>
+          <div className="info-row">
+            <span>Owner:</span>
+            <strong>{property.ownerName || "Unowned"}</strong>
+          </div>
 
-              {Array.isArray(property.rent) &&
-                property.rent.map((r, i) => (
-                  <div
-                    key={i}
-                    className={`pcm-row ${isCity && i === houses ? "active" : ""}`}
-                  >
-                    <span>{labels[i]}</span>
-                    <span>${r}</span>
-                  </div>
-                ))}
+          {property.houses > 0 && (
+            <div className="info-row">
+              <span>Buildings:</span>
+              <strong>{property.houses === 5 ? "1 Hotel 🏨" : `${property.houses} House(s) 🏠`}</strong>
+            </div>
+          )}
 
-              {property.type === "utility" && (
-                <p className="pcm-note">Rent: 4× the dice roll (10× if the owner has both utilities).</p>
+          {property.rent && (
+            <div className="rent-table">
+              <h4>Rent Schedule</h4>
+              <ul>
+                <li>Base Rent: ${property.rent[0]}</li>
+                <li>1 House: ${property.rent[1]}</li>
+                <li>2 Houses: ${property.rent[2]}</li>
+                <li>3 Houses: ${property.rent[3]}</li>
+                <li>4 Houses: ${property.rent[4]}</li>
+                <li>Hotel: ${property.rent[5]}</li>
+              </ul>
+            </div>
+          )}
+
+          {canInteract && (
+            <div className="modal-actions" style={{ display: "flex", gap: "10px", marginTop: "15px" }}>
+              {typeLower === "prop" && property.houses < 5 && (
+                <button 
+                  className="action-btn build-btn" 
+                  onClick={() => onBuild(property.id)}
+                  style={{ flex: 1, padding: "8px", background: "#10b981", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer" }}
+                >
+                  Build (${property.houseCost || 100})
+                </button>
               )}
-
-              {isCity && property.houseCost ? (
-                <div className="pcm-row">
-                  <span>House / hotel cost</span>
-                  <span>${property.houseCost}</span>
-                </div>
-              ) : null}
-
-              <div className="pcm-row">
-                <span>Mortgage value</span>
-                <span>${mortgageValue}</span>
-              </div>
-            </>
+              <button 
+                className="action-btn mortgage-btn" 
+                onClick={() => onMortgage(property.id)}
+                style={{ flex: 1, padding: "8px", background: property.isMortgaged ? "#3b82f6" : "#ef4444", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer" }}
+              >
+                {property.isMortgaged ? "Unmortgage" : "Mortgage"}
+              </button>
+            </div>
           )}
         </div>
-
-        {ownable && canAct && (
-          <div className="pcm-actions">
-            {isCity && !property.isMortgaged && houses < 5 && (
-              <button className="pcm-build" onClick={() => onBuild(property.id)}>
-                {houses === 4 ? "Build hotel" : "Build house"} (${property.houseCost})
-              </button>
-            )}
-            {property.isMortgaged ? (
-              <button className="pcm-mortgage" onClick={() => onMortgage(property.id)}>
-                Unmortgage (${unmortgageCost})
-              </button>
-            ) : (
-              houses === 0 && (
-                <button className="pcm-mortgage" onClick={() => onMortgage(property.id)}>
-                  Mortgage (+${mortgageValue})
-                </button>
-              )
-            )}
-          </div>
-        )}
-
-        {ownable && isOwner && !gameState?.isMyTurn && (
-          <p className="pcm-note" style={{ padding: "0 16px 14px" }}>You can build or mortgage on your turn.</p>
-        )}
       </div>
     </div>
   );
